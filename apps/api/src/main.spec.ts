@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import request from 'supertest';
-import { AppModule } from './app.module';
+import { HealthModule } from './modules/health/health.module';
+import { databaseConfig, jwtConfig } from './config';
 
 describe('Bootstrap Configuration', () => {
   let app: INestApplication;
@@ -11,7 +13,19 @@ describe('Bootstrap Configuration', () => {
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [databaseConfig, jwtConfig],
+        }),
+        TypeOrmModule.forRoot({
+          type: 'better-sqlite3',
+          database: ':memory:',
+          autoLoadEntities: true,
+          synchronize: true,
+        }),
+        HealthModule,
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
