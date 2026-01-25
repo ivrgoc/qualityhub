@@ -6,9 +6,13 @@ import {
   IsEnum,
   IsArray,
   IsNumber,
+  ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TestCaseTemplate, Priority } from '../entities/test-case.entity';
+import { TestStepDto } from './test-step.dto';
 
 export class CreateTestCaseDto {
   @ApiProperty({ example: 'Login with valid credentials' })
@@ -27,10 +31,16 @@ export class CreateTestCaseDto {
   @IsOptional()
   preconditions?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    type: [TestStepDto],
+    description: 'Array of test steps (max 100)',
+  })
   @IsArray()
   @IsOptional()
-  steps?: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @ArrayMaxSize(100)
+  @Type(() => TestStepDto)
+  steps?: TestStepDto[];
 
   @ApiPropertyOptional({ example: 'User is logged in successfully' })
   @IsString()
