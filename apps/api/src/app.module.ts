@@ -11,6 +11,7 @@ import { TestCasesModule } from './modules/test-cases/test-cases.module';
 import { TestRunsModule } from './modules/test-runs/test-runs.module';
 import { TestSuitesModule } from './modules/test-suites/test-suites.module';
 import { MilestonesModule } from './modules/milestones/milestones.module';
+import { TestPlansModule } from './modules/test-plans/test-plans.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { MilestonesModule } from './modules/milestones/milestones.module';
     TestRunsModule,
     TestSuitesModule,
     MilestonesModule,
+    TestPlansModule,
   ],
 })
 export class AppModule {}
