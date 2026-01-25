@@ -4,16 +4,21 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly invalidatedTokens: Set<string> = new Set();
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -48,14 +53,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    const tokens = this.generateTokens(user.id, user.email, user.role);
 
     return {
-      accessToken: this.jwtService.sign(payload),
+      ...tokens,
       user: {
         id: user.id,
         email: user.email,
@@ -65,7 +66,72 @@ export class AuthService {
     };
   }
 
+  async logout(refreshToken: string): Promise<{ message: string }> {
+    this.invalidatedTokens.add(refreshToken);
+    return { message: 'Logged out successfully' };
+  }
+
+  async refresh(
+    refreshTokenDto: RefreshTokenDto,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const { refreshToken } = refreshTokenDto;
+
+    if (this.invalidatedTokens.has(refreshToken)) {
+      throw new UnauthorizedException('Token has been invalidated');
+    }
+
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('jwt.secret'),
+      });
+
+      const user = await this.usersService.findById(payload.sub);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      // Invalidate old refresh token (token rotation)
+      this.invalidatedTokens.add(refreshToken);
+
+      return this.generateTokens(user.id, user.email, user.role);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
+
   async validateUser(userId: string) {
     return this.usersService.findById(userId);
+  }
+
+  private generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+  ): { accessToken: string; refreshToken: string } {
+    const payload = {
+      sub: userId,
+      email,
+      role,
+    };
+
+    const accessTokenExpiry = this.configService.get<number>(
+      'jwt.accessTokenExpiry',
+    );
+    const refreshTokenExpiry = this.configService.get<number>(
+      'jwt.refreshTokenExpiry',
+    );
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: accessTokenExpiry,
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: refreshTokenExpiry,
+    });
+
+    return { accessToken, refreshToken };
   }
 }

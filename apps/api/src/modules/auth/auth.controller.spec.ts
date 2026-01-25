@@ -26,6 +26,8 @@ describe('AuthController', () => {
           useValue: {
             register: jest.fn(),
             login: jest.fn(),
+            logout: jest.fn(),
+            refresh: jest.fn(),
           },
         },
       ],
@@ -77,6 +79,7 @@ describe('AuthController', () => {
     it('should login with valid credentials', async () => {
       const expectedResult = {
         accessToken: 'jwt-token-123',
+        refreshToken: 'refresh-token-456',
         user: {
           id: mockUser.id,
           email: mockUser.email,
@@ -89,6 +92,39 @@ describe('AuthController', () => {
       const result = await controller.login(loginDto);
 
       expect(authService.login).toHaveBeenCalledWith(loginDto);
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('logout', () => {
+    const refreshTokenDto = { refreshToken: 'refresh-token-123' };
+
+    it('should logout successfully', async () => {
+      const expectedResult = { message: 'Logged out successfully' };
+      authService.logout.mockResolvedValue(expectedResult);
+
+      const result = await controller.logout(refreshTokenDto);
+
+      expect(authService.logout).toHaveBeenCalledWith(
+        refreshTokenDto.refreshToken,
+      );
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('refresh', () => {
+    const refreshTokenDto = { refreshToken: 'refresh-token-123' };
+
+    it('should refresh tokens successfully', async () => {
+      const expectedResult = {
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+      };
+      authService.refresh.mockResolvedValue(expectedResult);
+
+      const result = await controller.refresh(refreshTokenDto);
+
+      expect(authService.refresh).toHaveBeenCalledWith(refreshTokenDto);
       expect(result).toEqual(expectedResult);
     });
   });

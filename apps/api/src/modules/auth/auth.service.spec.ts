@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
@@ -39,6 +40,20 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: {
             sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              const config: Record<string, unknown> = {
+                'jwt.secret': 'test-secret',
+                'jwt.accessTokenExpiry': 900,
+                'jwt.refreshTokenExpiry': 604800,
+              };
+              return config[key];
+            }),
           },
         },
       ],
@@ -119,10 +134,13 @@ describe('AuthService', () => {
     };
 
     it('should login successfully with valid credentials', async () => {
-      const accessToken = 'jwt-token-123';
+      const accessToken = 'access-token-123';
+      const refreshToken = 'refresh-token-456';
       usersService.findByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      jwtService.sign.mockReturnValue(accessToken);
+      jwtService.sign
+        .mockReturnValueOnce(accessToken)
+        .mockReturnValueOnce(refreshToken);
 
       const result = await service.login(loginDto);
 
@@ -131,13 +149,10 @@ describe('AuthService', () => {
         loginDto.password,
         mockUser.passwordHash,
       );
-      expect(jwtService.sign).toHaveBeenCalledWith({
-        sub: mockUser.id,
-        email: mockUser.email,
-        role: mockUser.role,
-      });
+      expect(jwtService.sign).toHaveBeenCalledTimes(2);
       expect(result).toEqual({
         accessToken,
+        refreshToken,
         user: {
           id: mockUser.id,
           email: mockUser.email,
@@ -170,6 +185,123 @@ describe('AuthService', () => {
         'Invalid credentials',
       );
       expect(jwtService.sign).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('logout', () => {
+    it('should logout successfully', async () => {
+      const refreshToken = 'refresh-token-123';
+
+      const result = await service.logout(refreshToken);
+
+      expect(result).toEqual({ message: 'Logged out successfully' });
+    });
+
+    it('should invalidate the refresh token', async () => {
+      const refreshToken = 'refresh-token-to-invalidate';
+      await service.logout(refreshToken);
+
+      // Attempt to use the invalidated token should fail
+      jwtService.verify.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role,
+      });
+
+      await expect(
+        service.refresh({ refreshToken }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('refresh', () => {
+    const refreshTokenDto = { refreshToken: 'valid-refresh-token' };
+
+    it('should refresh tokens successfully', async () => {
+      const newAccessToken = 'new-access-token';
+      const newRefreshToken = 'new-refresh-token';
+      jwtService.verify.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role,
+      });
+      usersService.findById.mockResolvedValue(mockUser);
+      jwtService.sign
+        .mockReturnValueOnce(newAccessToken)
+        .mockReturnValueOnce(newRefreshToken);
+
+      const result = await service.refresh(refreshTokenDto);
+
+      expect(jwtService.verify).toHaveBeenCalledWith(
+        refreshTokenDto.refreshToken,
+        { secret: 'test-secret' },
+      );
+      expect(usersService.findById).toHaveBeenCalledWith(mockUser.id);
+      expect(result).toEqual({
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      });
+    });
+
+    it('should throw UnauthorizedException when token is invalidated', async () => {
+      const invalidatedToken = 'invalidated-token';
+      await service.logout(invalidatedToken);
+
+      await expect(
+        service.refresh({ refreshToken: invalidatedToken }),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.refresh({ refreshToken: invalidatedToken }),
+      ).rejects.toThrow('Token has been invalidated');
+    });
+
+    it('should throw UnauthorizedException when token verification fails', async () => {
+      jwtService.verify.mockImplementation(() => {
+        throw new Error('Invalid token');
+      });
+
+      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(
+        'Invalid or expired refresh token',
+      );
+    });
+
+    it('should throw UnauthorizedException when user not found', async () => {
+      jwtService.verify.mockReturnValue({
+        sub: 'non-existent-user',
+        email: 'test@example.com',
+        role: UserRole.TESTER,
+      });
+      usersService.findById.mockResolvedValue(null);
+
+      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(
+        'User not found',
+      );
+    });
+
+    it('should invalidate old refresh token after successful refresh (token rotation)', async () => {
+      const oldRefreshToken = 'old-refresh-token';
+      jwtService.verify.mockReturnValue({
+        sub: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role,
+      });
+      usersService.findById.mockResolvedValue(mockUser);
+      jwtService.sign
+        .mockReturnValueOnce('new-access-token')
+        .mockReturnValueOnce('new-refresh-token');
+
+      await service.refresh({ refreshToken: oldRefreshToken });
+
+      // Old refresh token should now be invalidated
+      await expect(
+        service.refresh({ refreshToken: oldRefreshToken }),
+      ).rejects.toThrow('Token has been invalidated');
     });
   });
 
