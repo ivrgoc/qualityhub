@@ -5,21 +5,33 @@ import {
   IsOptional,
   IsUUID,
   IsObject,
+  IsEnum,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { TestRunStatus } from '../entities/test-run.entity';
 
-export class CreateTestRunDto {
-  @ApiProperty({ example: 'Sprint 1 Regression' })
+export class UpdateTestRunDto {
+  @ApiPropertyOptional({ example: 'Sprint 1 Regression - Updated' })
+  @IsOptional()
   @IsString()
   @MinLength(3)
   @MaxLength(255)
-  name: string;
+  name?: string;
 
-  @ApiPropertyOptional({ example: 'Regression tests for Sprint 1 release' })
-  @IsString()
+  @ApiPropertyOptional({ example: 'Updated regression tests description' })
   @IsOptional()
+  @IsString()
   @MaxLength(2000)
   description?: string;
+
+  @ApiPropertyOptional({
+    example: 'in_progress',
+    enum: TestRunStatus,
+    description: 'Current status of the test run',
+  })
+  @IsOptional()
+  @IsEnum(TestRunStatus)
+  status?: TestRunStatus;
 
   @ApiPropertyOptional({
     example: '550e8400-e29b-41d4-a716-446655440000',
@@ -27,7 +39,7 @@ export class CreateTestRunDto {
   })
   @IsOptional()
   @IsUUID()
-  testPlanId?: string;
+  testPlanId?: string | null;
 
   @ApiPropertyOptional({
     example: '550e8400-e29b-41d4-a716-446655440001',
@@ -35,10 +47,10 @@ export class CreateTestRunDto {
   })
   @IsOptional()
   @IsUUID()
-  assigneeId?: string;
+  assigneeId?: string | null;
 
   @ApiPropertyOptional({
-    example: { environment: 'staging', browser: 'chrome' },
+    example: { environment: 'production', browser: 'firefox' },
     description: 'Configuration settings for the test run',
   })
   @IsOptional()
