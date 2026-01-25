@@ -55,12 +55,12 @@ describe('UpdateMilestoneDto', () => {
       expect(instance.dueDate).toBe('2024-12-31');
     });
 
-    it('should pass validation with only completed', async () => {
+    it('should pass validation with only isCompleted', async () => {
       const { errors, instance } = await transformAndValidate({
-        completed: true,
+        isCompleted: true,
       });
       expect(errors).toHaveLength(0);
-      expect(instance.completed).toBe(true);
+      expect(instance.isCompleted).toBe(true);
     });
 
     it('should pass validation with all fields', async () => {
@@ -68,13 +68,13 @@ describe('UpdateMilestoneDto', () => {
         name: 'Updated Name',
         description: 'Updated description',
         dueDate: '2024-12-31T23:59:59Z',
-        completed: true,
+        isCompleted: true,
       });
       expect(errors).toHaveLength(0);
       expect(instance.name).toBe('Updated Name');
       expect(instance.description).toBe('Updated description');
       expect(instance.dueDate).toBe('2024-12-31T23:59:59Z');
-      expect(instance.completed).toBe(true);
+      expect(instance.isCompleted).toBe(true);
     });
   });
 
@@ -161,26 +161,26 @@ describe('UpdateMilestoneDto', () => {
     });
   });
 
-  describe('completed validation', () => {
-    it('should accept true completed status', async () => {
+  describe('isCompleted validation', () => {
+    it('should accept true isCompleted status', async () => {
       const { errors, instance } = await transformAndValidate({
-        completed: true,
+        isCompleted: true,
       });
       expect(errors).toHaveLength(0);
-      expect(instance.completed).toBe(true);
+      expect(instance.isCompleted).toBe(true);
     });
 
-    it('should accept false completed status', async () => {
+    it('should accept false isCompleted status', async () => {
       const { errors, instance } = await transformAndValidate({
-        completed: false,
+        isCompleted: false,
       });
       expect(errors).toHaveLength(0);
-      expect(instance.completed).toBe(false);
+      expect(instance.isCompleted).toBe(false);
     });
 
-    it('should reject non-boolean completed', async () => {
+    it('should reject non-boolean isCompleted', async () => {
       const { errors } = await transformAndValidate({
-        completed: 'yes',
+        isCompleted: 'yes',
       });
       expect(errors.length).toBeGreaterThan(0);
     });
@@ -192,17 +192,17 @@ describe('UpdateMilestoneDto', () => {
         name: 'AB',
         description: 'A'.repeat(501),
         dueDate: 'invalid',
-        completed: 'not-boolean',
+        isCompleted: 'not-boolean',
       });
       expect(errors.length).toBeGreaterThanOrEqual(3);
     });
 
     it('should allow partial updates with valid fields only', async () => {
       const { instance, errors } = await transformAndValidate({
-        completed: true,
+        isCompleted: true,
       });
       expect(errors).toHaveLength(0);
-      expect(instance.completed).toBe(true);
+      expect(instance.isCompleted).toBe(true);
       expect(instance.name).toBeUndefined();
       expect(instance.description).toBeUndefined();
       expect(instance.dueDate).toBeUndefined();

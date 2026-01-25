@@ -17,7 +17,7 @@ describe('MilestonesController', () => {
     name: 'Q1 Release',
     description: 'End of quarter milestone',
     dueDate: new Date('2024-03-31'),
-    completed: false,
+    isCompleted: false,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
     deletedAt: null,
@@ -139,7 +139,7 @@ describe('MilestonesController', () => {
   describe('update', () => {
     const updateMilestoneDto: UpdateMilestoneDto = {
       name: 'Updated Milestone',
-      completed: true,
+      isCompleted: true,
     };
 
     it('should update a milestone', async () => {
@@ -151,20 +151,20 @@ describe('MilestonesController', () => {
       expect(service.update).toHaveBeenCalledWith('proj-123', 'milestone-123', updateMilestoneDto);
       expect(result).toEqual(updatedMilestone);
       expect(result.name).toBe('Updated Milestone');
-      expect(result.completed).toBe(true);
+      expect(result.isCompleted).toBe(true);
     });
 
     it('should update a milestone with partial data', async () => {
       const partialUpdate: UpdateMilestoneDto = {
-        completed: true,
+        isCompleted: true,
       };
-      const updatedMilestone = { ...mockMilestone, completed: true };
+      const updatedMilestone = { ...mockMilestone, isCompleted: true };
       service.update.mockResolvedValue(updatedMilestone);
 
       const result = await controller.update('proj-123', 'milestone-123', partialUpdate);
 
       expect(service.update).toHaveBeenCalledWith('proj-123', 'milestone-123', partialUpdate);
-      expect(result.completed).toBe(true);
+      expect(result.isCompleted).toBe(true);
     });
 
     it('should throw NotFoundException when milestone not found', async () => {

@@ -29,7 +29,7 @@ describe('CreateMilestoneDto', () => {
     name: 'Q1 Release',
     description: 'End of quarter milestone',
     dueDate: '2024-03-31T23:59:59Z',
-    completed: false,
+    isCompleted: false,
   };
 
   describe('valid input', () => {
@@ -39,7 +39,7 @@ describe('CreateMilestoneDto', () => {
       expect(instance.name).toBe('Q1 Release');
       expect(instance.description).toBe('End of quarter milestone');
       expect(instance.dueDate).toBe('2024-03-31T23:59:59Z');
-      expect(instance.completed).toBe(false);
+      expect(instance.isCompleted).toBe(false);
     });
 
     it('should pass validation with only required name', async () => {
@@ -183,29 +183,29 @@ describe('CreateMilestoneDto', () => {
     });
   });
 
-  describe('completed validation', () => {
-    it('should accept true completed status', async () => {
+  describe('isCompleted validation', () => {
+    it('should accept true isCompleted status', async () => {
       const { errors, instance } = await transformAndValidate({
         name: 'Milestone',
-        completed: true,
+        isCompleted: true,
       });
       expect(errors).toHaveLength(0);
-      expect(instance.completed).toBe(true);
+      expect(instance.isCompleted).toBe(true);
     });
 
-    it('should accept false completed status', async () => {
+    it('should accept false isCompleted status', async () => {
       const { errors, instance } = await transformAndValidate({
         name: 'Milestone',
-        completed: false,
+        isCompleted: false,
       });
       expect(errors).toHaveLength(0);
-      expect(instance.completed).toBe(false);
+      expect(instance.isCompleted).toBe(false);
     });
 
-    it('should reject non-boolean completed', async () => {
+    it('should reject non-boolean isCompleted', async () => {
       const { errors } = await transformAndValidate({
         name: 'Milestone',
-        completed: 'yes',
+        isCompleted: 'yes',
       });
       expect(errors.length).toBeGreaterThan(0);
     });
@@ -217,7 +217,7 @@ describe('CreateMilestoneDto', () => {
         name: 'AB',
         description: 'A'.repeat(501),
         dueDate: 'invalid',
-        completed: 'not-boolean',
+        isCompleted: 'not-boolean',
       });
       expect(errors.length).toBeGreaterThanOrEqual(3);
     });
@@ -227,13 +227,13 @@ describe('CreateMilestoneDto', () => {
         name: 'Complete milestone',
         description: 'A complete milestone with all fields',
         dueDate: '2024-12-31T23:59:59Z',
-        completed: false,
+        isCompleted: false,
       });
       expect(errors).toHaveLength(0);
       expect(instance.name).toBe('Complete milestone');
       expect(instance.description).toBe('A complete milestone with all fields');
       expect(instance.dueDate).toBe('2024-12-31T23:59:59Z');
-      expect(instance.completed).toBe(false);
+      expect(instance.isCompleted).toBe(false);
     });
   });
 });

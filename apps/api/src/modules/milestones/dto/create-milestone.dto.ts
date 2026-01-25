@@ -29,5 +29,5 @@ export class CreateMilestoneDto {
   @ApiPropertyOptional({ example: false })
   @IsBoolean()
   @IsOptional()
-  completed?: boolean;
+  isCompleted?: boolean;
 }

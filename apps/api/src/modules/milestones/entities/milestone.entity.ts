@@ -6,10 +6,12 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   Index,
 } from 'typeorm';
 import { Project } from '../../projects/entities/project.entity';
+import type { TestPlan } from '../../test-plans/entities/test-plan.entity';
 
 @Entity('milestones')
 @Index(['projectId'])
@@ -33,8 +35,11 @@ export class Milestone {
   @Column({ name: 'due_date', type: 'timestamp', nullable: true })
   dueDate: Date;
 
-  @Column({ default: false })
-  completed: boolean;
+  @Column({ name: 'is_completed', default: false })
+  isCompleted: boolean;
+
+  @OneToMany('TestPlan', 'milestone')
+  testPlans: TestPlan[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

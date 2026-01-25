@@ -18,7 +18,7 @@ describe('MilestonesService', () => {
     name: 'Q1 Release',
     description: 'End of quarter milestone',
     dueDate: new Date('2024-03-31'),
-    completed: false,
+    isCompleted: false,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
     deletedAt: null,
@@ -92,10 +92,10 @@ describe('MilestonesService', () => {
       expect(result).toEqual(newMilestone);
     });
 
-    it('should create a milestone with completed status', async () => {
+    it('should create a milestone with isCompleted status', async () => {
       const dtoWithCompleted: CreateMilestoneDto = {
         ...createMilestoneDto,
-        completed: true,
+        isCompleted: true,
       };
       const newMilestone = { ...mockMilestone, ...dtoWithCompleted };
       milestoneRepository.create.mockReturnValue(newMilestone);
@@ -107,7 +107,7 @@ describe('MilestonesService', () => {
         ...dtoWithCompleted,
         projectId: 'proj-123',
       });
-      expect(result.completed).toBe(true);
+      expect(result.isCompleted).toBe(true);
     });
   });
 
@@ -237,10 +237,10 @@ describe('MilestonesService', () => {
 
     it('should update only provided fields', async () => {
       const partialUpdate: UpdateMilestoneDto = {
-        completed: true,
+        isCompleted: true,
       };
       const existingMilestone = { ...mockMilestone };
-      const updatedMilestone = { ...mockMilestone, completed: true };
+      const updatedMilestone = { ...mockMilestone, isCompleted: true };
 
       milestoneRepository.findOne.mockResolvedValue(existingMilestone);
       milestoneRepository.save.mockResolvedValue(updatedMilestone);
@@ -251,10 +251,10 @@ describe('MilestonesService', () => {
         expect.objectContaining({
           id: 'milestone-123',
           name: 'Q1 Release',
-          completed: true,
+          isCompleted: true,
         }),
       );
-      expect(result.completed).toBe(true);
+      expect(result.isCompleted).toBe(true);
     });
 
     it('should update description', async () => {

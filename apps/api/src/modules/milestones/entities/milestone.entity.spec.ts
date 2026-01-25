@@ -10,7 +10,7 @@ describe('Milestone Entity', () => {
     milestone.name = 'Q1 Release';
     milestone.description = 'End of quarter release milestone';
     milestone.dueDate = new Date('2024-03-31');
-    milestone.completed = false;
+    milestone.isCompleted = false;
     milestone.createdAt = new Date('2024-01-01');
     milestone.updatedAt = new Date('2024-01-02');
     milestone.deletedAt = null;
@@ -20,31 +20,31 @@ describe('Milestone Entity', () => {
     expect(milestone.name).toBe('Q1 Release');
     expect(milestone.description).toBe('End of quarter release milestone');
     expect(milestone.dueDate).toEqual(new Date('2024-03-31'));
-    expect(milestone.completed).toBe(false);
+    expect(milestone.isCompleted).toBe(false);
     expect(milestone.createdAt).toEqual(new Date('2024-01-01'));
     expect(milestone.updatedAt).toEqual(new Date('2024-01-02'));
     expect(milestone.deletedAt).toBeNull();
   });
 
-  describe('completed field', () => {
-    it('should support completed status', () => {
+  describe('isCompleted field', () => {
+    it('should support isCompleted status', () => {
       const milestone = new Milestone();
-      milestone.completed = false;
+      milestone.isCompleted = false;
 
-      expect(milestone.completed).toBe(false);
+      expect(milestone.isCompleted).toBe(false);
 
-      milestone.completed = true;
+      milestone.isCompleted = true;
 
-      expect(milestone.completed).toBe(true);
+      expect(milestone.isCompleted).toBe(true);
     });
 
     it('should default to false', () => {
       const milestone = new Milestone();
       milestone.id = 'milestone-123';
       milestone.name = 'New Milestone';
-      milestone.completed = false;
+      milestone.isCompleted = false;
 
-      expect(milestone.completed).toBe(false);
+      expect(milestone.isCompleted).toBe(false);
     });
   });
 
@@ -182,7 +182,7 @@ describe('Milestone Entity', () => {
       milestone.name = 'Beta Release';
       milestone.description = 'Beta version release for internal testing';
       milestone.dueDate = new Date('2024-06-30');
-      milestone.completed = false;
+      milestone.isCompleted = false;
       milestone.projectId = project.id;
       milestone.project = project;
       milestone.createdAt = new Date('2024-01-01');
@@ -193,7 +193,7 @@ describe('Milestone Entity', () => {
       expect(milestone.name).toBe('Beta Release');
       expect(milestone.description).toBe('Beta version release for internal testing');
       expect(milestone.dueDate).toEqual(new Date('2024-06-30'));
-      expect(milestone.completed).toBe(false);
+      expect(milestone.isCompleted).toBe(false);
       expect(milestone.project.name).toBe('E-Commerce Project');
       expect(milestone.deletedAt).toBeNull();
     });
@@ -205,14 +205,41 @@ describe('Milestone Entity', () => {
       milestone.name = 'Alpha Release';
       milestone.description = 'Alpha version completed';
       milestone.dueDate = new Date('2024-03-15');
-      milestone.completed = true;
+      milestone.isCompleted = true;
       milestone.projectId = 'proj-123';
       milestone.createdAt = new Date('2024-01-01');
       milestone.updatedAt = new Date('2024-03-15');
       milestone.deletedAt = null;
 
-      expect(milestone.completed).toBe(true);
+      expect(milestone.isCompleted).toBe(true);
       expect(milestone.name).toBe('Alpha Release');
+    });
+  });
+
+  describe('testPlans relation', () => {
+    it('should have testPlans relation', () => {
+      const milestone = new Milestone();
+      milestone.id = 'milestone-123';
+      milestone.name = 'Q1 Release';
+      milestone.testPlans = [];
+
+      expect(milestone.testPlans).toBeDefined();
+      expect(milestone.testPlans).toEqual([]);
+    });
+
+    it('should support multiple test plans', () => {
+      const milestone = new Milestone();
+      milestone.id = 'milestone-123';
+      milestone.name = 'Q1 Release';
+
+      const testPlan1 = { id: 'plan-1', name: 'Regression Tests', milestoneId: 'milestone-123' };
+      const testPlan2 = { id: 'plan-2', name: 'Smoke Tests', milestoneId: 'milestone-123' };
+
+      milestone.testPlans = [testPlan1, testPlan2] as any;
+
+      expect(milestone.testPlans).toHaveLength(2);
+      expect(milestone.testPlans[0].name).toBe('Regression Tests');
+      expect(milestone.testPlans[1].name).toBe('Smoke Tests');
     });
   });
 });
