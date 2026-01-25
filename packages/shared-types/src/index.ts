@@ -23,8 +23,12 @@ export type {
   CreateOrganizationDto,
   UpdateOrganizationDto,
   Project,
+  ProjectSettings,
+  ProjectMember,
   CreateProjectDto,
   UpdateProjectDto,
+  AddProjectMemberDto,
+  UpdateProjectMemberDto,
   TestStep,
   CreateTestStepDto,
   TestCase,
@@ -54,6 +58,9 @@ export type {
   Attachment,
   CreateAttachmentDto,
 } from './entities';
+
+// Entity enums (ProjectRole is defined in entities, not enums)
+export { ProjectRole, PROJECT_ROLE_VALUES, isProjectRole } from './entities';
 
 // API Types
 export type {
