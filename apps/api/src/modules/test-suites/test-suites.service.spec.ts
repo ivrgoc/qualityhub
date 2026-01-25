@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { TestSuitesService } from './test-suites.service';
 import { TestSuite } from './entities/test-suite.entity';
 import { Section } from './entities/section.entity';
@@ -35,6 +35,7 @@ describe('TestSuitesService', () => {
     children: [],
     position: 0,
     createdAt: new Date('2024-01-01'),
+    testCases: [],
   };
 
   beforeEach(async () => {
@@ -600,6 +601,416 @@ describe('TestSuitesService', () => {
         service.deleteSection('proj-123', 'suite-123', 'non-existent'),
       ).rejects.toThrow(NotFoundException);
       expect(sectionRepository.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getSectionTree', () => {
+    const rootSection: Section = {
+      id: 'root-1',
+      suiteId: 'suite-123',
+      suite: null,
+      name: 'Root Section',
+      parentId: null,
+      parent: null,
+      children: [],
+      position: 0,
+      createdAt: new Date('2024-01-01'),
+      testCases: [],
+    };
+
+    const childSection: Section = {
+      id: 'child-1',
+      suiteId: 'suite-123',
+      suite: null,
+      name: 'Child Section',
+      parentId: 'root-1',
+      parent: null,
+      children: [],
+      position: 0,
+      createdAt: new Date('2024-01-01'),
+      testCases: [],
+    };
+
+    const grandchildSection: Section = {
+      id: 'grandchild-1',
+      suiteId: 'suite-123',
+      suite: null,
+      name: 'Grandchild Section',
+      parentId: 'child-1',
+      parent: null,
+      children: [],
+      position: 0,
+      createdAt: new Date('2024-01-01'),
+      testCases: [],
+    };
+
+    it('should build a tree from flat sections', async () => {
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.find.mockResolvedValue([
+        rootSection,
+        childSection,
+        grandchildSection,
+      ]);
+
+      const result = await service.getSectionTree('proj-123', 'suite-123');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('root-1');
+      expect(result[0].children).toHaveLength(1);
+      expect(result[0].children[0].id).toBe('child-1');
+      expect(result[0].children[0].children).toHaveLength(1);
+      expect(result[0].children[0].children[0].id).toBe('grandchild-1');
+    });
+
+    it('should return empty array when no sections exist', async () => {
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.find.mockResolvedValue([]);
+
+      const result = await service.getSectionTree('proj-123', 'suite-123');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle multiple root sections', async () => {
+      const secondRootSection: Section = {
+        ...rootSection,
+        id: 'root-2',
+        name: 'Second Root',
+        position: 1,
+      };
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.find.mockResolvedValue([rootSection, secondRootSection]);
+
+      const result = await service.getSectionTree('proj-123', 'suite-123');
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('should throw NotFoundException when suite not found', async () => {
+      testSuiteRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.getSectionTree('proj-123', 'non-existent'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getSectionChildren', () => {
+    it('should return direct children of a section', async () => {
+      const childSections = [
+        { ...mockSection, id: 'child-1', parentId: 'section-123' },
+        { ...mockSection, id: 'child-2', parentId: 'section-123' },
+      ];
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.find.mockResolvedValue(childSections);
+
+      const result = await service.getSectionChildren(
+        'proj-123',
+        'suite-123',
+        'section-123',
+      );
+
+      expect(result).toEqual(childSections);
+      expect(sectionRepository.find).toHaveBeenCalledWith({
+        where: { suiteId: 'suite-123', parentId: 'section-123' },
+        order: { position: 'ASC', createdAt: 'ASC' },
+      });
+    });
+
+    it('should return root sections when parentId is null', async () => {
+      const rootSections = [
+        { ...mockSection, id: 'root-1', parentId: null },
+        { ...mockSection, id: 'root-2', parentId: null },
+      ];
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.find.mockResolvedValue(rootSections);
+
+      const result = await service.getSectionChildren('proj-123', 'suite-123', null);
+
+      expect(result).toEqual(rootSections);
+    });
+
+    it('should throw NotFoundException when suite not found', async () => {
+      testSuiteRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.getSectionChildren('proj-123', 'non-existent', 'section-123'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getSectionAncestors', () => {
+    it('should return all ancestors in order from root to parent', async () => {
+      const grandparent: Section = {
+        ...mockSection,
+        id: 'grandparent',
+        parentId: null,
+      };
+      const parent: Section = {
+        ...mockSection,
+        id: 'parent',
+        parentId: 'grandparent',
+      };
+      const child: Section = {
+        ...mockSection,
+        id: 'child',
+        parentId: 'parent',
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne
+        .mockResolvedValueOnce(child)
+        .mockResolvedValueOnce(parent)
+        .mockResolvedValueOnce(grandparent);
+
+      const result = await service.getSectionAncestors(
+        'proj-123',
+        'suite-123',
+        'child',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('grandparent');
+      expect(result[1].id).toBe('parent');
+    });
+
+    it('should return empty array for root section', async () => {
+      const rootSection: Section = {
+        ...mockSection,
+        id: 'root',
+        parentId: null,
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne.mockResolvedValueOnce(rootSection);
+
+      const result = await service.getSectionAncestors(
+        'proj-123',
+        'suite-123',
+        'root',
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw NotFoundException when section not found', async () => {
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.getSectionAncestors('proj-123', 'suite-123', 'non-existent'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('moveSection', () => {
+    it('should move section to new parent', async () => {
+      const section: Section = {
+        ...mockSection,
+        id: 'section-to-move',
+        parentId: null,
+        position: 0,
+      };
+      const targetParent: Section = {
+        ...mockSection,
+        id: 'new-parent',
+        parentId: null,
+        position: 1,
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne
+        .mockResolvedValueOnce(section)
+        .mockResolvedValueOnce(targetParent);
+      sectionRepository.find.mockResolvedValue([]);
+      sectionRepository.save.mockResolvedValue({
+        ...section,
+        parentId: 'new-parent',
+        position: 0,
+      });
+
+      const result = await service.moveSection(
+        'proj-123',
+        'suite-123',
+        'section-to-move',
+        'new-parent',
+        0,
+      );
+
+      expect(result.parentId).toBe('new-parent');
+      expect(result.position).toBe(0);
+    });
+
+    it('should move section to root level', async () => {
+      const section: Section = {
+        ...mockSection,
+        id: 'section-to-move',
+        parentId: 'old-parent',
+        position: 0,
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne.mockResolvedValueOnce(section);
+      sectionRepository.find.mockResolvedValue([]);
+      sectionRepository.save.mockResolvedValue({
+        ...section,
+        parentId: null,
+        position: 0,
+      });
+
+      const result = await service.moveSection(
+        'proj-123',
+        'suite-123',
+        'section-to-move',
+        null,
+        0,
+      );
+
+      expect(result.parentId).toBeNull();
+    });
+
+    it('should reorder siblings when moving section', async () => {
+      const section: Section = {
+        ...mockSection,
+        id: 'section-to-move',
+        parentId: null,
+        position: 2,
+      };
+      const sibling1: Section = {
+        ...mockSection,
+        id: 'sibling-1',
+        parentId: null,
+        position: 0,
+      };
+      const sibling2: Section = {
+        ...mockSection,
+        id: 'sibling-2',
+        parentId: null,
+        position: 1,
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne.mockResolvedValueOnce(section);
+      sectionRepository.find.mockResolvedValue([sibling1, sibling2, section]);
+      sectionRepository.save.mockImplementation((s) => Promise.resolve(s));
+
+      await service.moveSection(
+        'proj-123',
+        'suite-123',
+        'section-to-move',
+        null,
+        1,
+      );
+
+      expect(sectionRepository.save).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when trying to set section as its own parent', async () => {
+      const section: Section = {
+        ...mockSection,
+        id: 'section-123',
+        parentId: null,
+        position: 0,
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne.mockResolvedValue(section);
+
+      await expect(
+        service.moveSection(
+          'proj-123',
+          'suite-123',
+          'section-123',
+          'section-123',
+          0,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.moveSection(
+          'proj-123',
+          'suite-123',
+          'section-123',
+          'section-123',
+          0,
+        ),
+      ).rejects.toThrow('A section cannot be its own parent');
+    });
+
+    it('should throw NotFoundException when target parent not found', async () => {
+      const section: Section = {
+        ...mockSection,
+        id: 'section-to-move',
+        parentId: null,
+        position: 0,
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne
+        .mockResolvedValueOnce(section)
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        service.moveSection(
+          'proj-123',
+          'suite-123',
+          'section-to-move',
+          'non-existent-parent',
+          0,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException when move would create circular reference', async () => {
+      const parent: Section = {
+        ...mockSection,
+        id: 'parent',
+        parentId: null,
+        position: 0,
+      };
+      const child: Section = {
+        ...mockSection,
+        id: 'child',
+        parentId: 'parent',
+        position: 0,
+      };
+
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      // First call: findSectionByIdOrFail for 'parent'
+      // Second call: findOne for targetParent 'child'
+      // Third call: checkForCycle finds 'child' and gets its parent
+      sectionRepository.findOne
+        .mockResolvedValueOnce(parent) // findSectionByIdOrFail gets parent section
+        .mockResolvedValueOnce(child) // findOne gets target parent 'child'
+        .mockResolvedValueOnce(child); // checkForCycle starts with 'child', child.parentId = 'parent' === sectionId, cycle detected
+
+      await expect(
+        service.moveSection('proj-123', 'suite-123', 'parent', 'child', 0),
+      ).rejects.toThrow(BadRequestException);
+
+      sectionRepository.findOne
+        .mockResolvedValueOnce(parent)
+        .mockResolvedValueOnce(child)
+        .mockResolvedValueOnce(child);
+
+      await expect(
+        service.moveSection('proj-123', 'suite-123', 'parent', 'child', 0),
+      ).rejects.toThrow('Moving this section would create a circular reference');
+    });
+
+    it('should throw NotFoundException when section not found', async () => {
+      testSuiteRepository.findOne.mockResolvedValue(mockTestSuite);
+      sectionRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.moveSection(
+          'proj-123',
+          'suite-123',
+          'non-existent',
+          null,
+          0,
+        ),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });
