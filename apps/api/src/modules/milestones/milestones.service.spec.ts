@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { MilestonesService } from './milestones.service';
 import { Milestone } from './entities/milestone.entity';
+import { TestPlan } from '../test-plans/entities/test-plan.entity';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
 import { UpdateMilestoneDto } from './dto/update-milestone.dto';
 
 describe('MilestonesService', () => {
   let service: MilestonesService;
   let milestoneRepository: jest.Mocked<Repository<Milestone>>;
+  let testPlanRepository: jest.Mocked<Repository<TestPlan>>;
 
   const mockMilestone: Milestone = {
     id: 'milestone-123',
@@ -19,6 +21,7 @@ describe('MilestonesService', () => {
     description: 'End of quarter milestone',
     dueDate: new Date('2024-03-31'),
     isCompleted: false,
+    testPlans: [],
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
     deletedAt: null,
@@ -38,11 +41,18 @@ describe('MilestonesService', () => {
             softDelete: jest.fn(),
           },
         },
+        {
+          provide: getRepositoryToken(TestPlan),
+          useValue: {
+            count: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<MilestonesService>(MilestonesService);
     milestoneRepository = module.get(getRepositoryToken(Milestone));
+    testPlanRepository = module.get(getRepositoryToken(TestPlan));
   });
 
   afterEach(() => {
@@ -317,6 +327,108 @@ describe('MilestonesService', () => {
         NotFoundException,
       );
       expect(milestoneRepository.softDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getProgress', () => {
+    it('should return progress with 0% when milestone is not completed', async () => {
+      milestoneRepository.findOne.mockResolvedValue(mockMilestone);
+      testPlanRepository.count.mockResolvedValue(5);
+
+      const result = await service.getProgress('proj-123', 'milestone-123');
+
+      expect(milestoneRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'milestone-123', projectId: 'proj-123' },
+      });
+      expect(testPlanRepository.count).toHaveBeenCalledWith({
+        where: { milestoneId: 'milestone-123' },
+      });
+      expect(result).toEqual({
+        milestoneId: 'milestone-123',
+        totalTestPlans: 5,
+        isCompleted: false,
+        progressPercentage: 0,
+      });
+    });
+
+    it('should return progress with 100% when milestone is completed', async () => {
+      const completedMilestone = { ...mockMilestone, isCompleted: true };
+      milestoneRepository.findOne.mockResolvedValue(completedMilestone);
+      testPlanRepository.count.mockResolvedValue(3);
+
+      const result = await service.getProgress('proj-123', 'milestone-123');
+
+      expect(result).toEqual({
+        milestoneId: 'milestone-123',
+        totalTestPlans: 3,
+        isCompleted: true,
+        progressPercentage: 100,
+      });
+    });
+
+    it('should return progress with 0 test plans when none exist', async () => {
+      milestoneRepository.findOne.mockResolvedValue(mockMilestone);
+      testPlanRepository.count.mockResolvedValue(0);
+
+      const result = await service.getProgress('proj-123', 'milestone-123');
+
+      expect(result).toEqual({
+        milestoneId: 'milestone-123',
+        totalTestPlans: 0,
+        isCompleted: false,
+        progressPercentage: 0,
+      });
+    });
+
+    it('should throw NotFoundException when milestone not found', async () => {
+      milestoneRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.getProgress('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(testPlanRepository.count).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findByIdWithTestPlans', () => {
+    it('should find a milestone with test plans', async () => {
+      const milestoneWithTestPlans = {
+        ...mockMilestone,
+        testPlans: [
+          { id: 'plan-1', name: 'Test Plan 1', projectId: 'proj-123', milestoneId: 'milestone-123' },
+          { id: 'plan-2', name: 'Test Plan 2', projectId: 'proj-123', milestoneId: 'milestone-123' },
+        ],
+      };
+      milestoneRepository.findOne.mockResolvedValue(milestoneWithTestPlans);
+
+      const result = await service.findByIdWithTestPlans('proj-123', 'milestone-123');
+
+      expect(milestoneRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'milestone-123', projectId: 'proj-123' },
+        relations: ['testPlans'],
+      });
+      expect(result).toEqual(milestoneWithTestPlans);
+      expect(result.testPlans).toHaveLength(2);
+    });
+
+    it('should return milestone with empty test plans array', async () => {
+      const milestoneWithNoTestPlans = { ...mockMilestone, testPlans: [] };
+      milestoneRepository.findOne.mockResolvedValue(milestoneWithNoTestPlans);
+
+      const result = await service.findByIdWithTestPlans('proj-123', 'milestone-123');
+
+      expect(result.testPlans).toEqual([]);
+    });
+
+    it('should throw NotFoundException when milestone not found', async () => {
+      milestoneRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findByIdWithTestPlans('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.findByIdWithTestPlans('proj-123', 'non-existent')).rejects.toThrow(
+        'Milestone with ID non-existent not found',
+      );
     });
   });
 });
