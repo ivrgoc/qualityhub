@@ -1,12 +1,16 @@
 import { User, UserRole } from './user.entity';
 import { RefreshToken } from './refresh-token.entity';
+import {
+  Organization,
+  OrganizationPlan,
+} from '../../organizations/entities/organization.entity';
 
 describe('User Entity', () => {
   it('should create a user instance', () => {
     const user = new User();
 
     user.id = 'user-123';
-    user.orgId = 'org-456';
+    user.organizationId = 'org-456';
     user.email = 'test@example.com';
     user.passwordHash = 'hashed-password';
     user.name = 'Test User';
@@ -15,7 +19,7 @@ describe('User Entity', () => {
     user.createdAt = new Date('2024-01-01');
 
     expect(user.id).toBe('user-123');
-    expect(user.orgId).toBe('org-456');
+    expect(user.organizationId).toBe('org-456');
     expect(user.email).toBe('test@example.com');
     expect(user.passwordHash).toBe('hashed-password');
     expect(user.name).toBe('Test User');
@@ -63,5 +67,22 @@ describe('User Entity', () => {
     expect(user.refreshTokens).toHaveLength(2);
     expect(user.refreshTokens[0].id).toBe('token-1');
     expect(user.refreshTokens[1].id).toBe('token-2');
+  });
+
+  it('should have organization relation', () => {
+    const user = new User();
+    const organization = new Organization();
+    organization.id = 'org-123';
+    organization.name = 'Test Organization';
+    organization.slug = 'test-org';
+    organization.plan = OrganizationPlan.PROFESSIONAL;
+
+    user.organizationId = organization.id;
+    user.organization = organization;
+
+    expect(user.organization).toBe(organization);
+    expect(user.organization.id).toBe('org-123');
+    expect(user.organization.name).toBe('Test Organization');
+    expect(user.organizationId).toBe(organization.id);
   });
 });

@@ -16,12 +16,15 @@ describe('AuthService', () => {
 
   const mockUser: User = {
     id: 'user-123',
-    orgId: 'org-456',
+    organizationId: 'org-456',
+    organization: null as any,
     email: 'test@example.com',
     passwordHash: 'hashed-password',
     name: 'Test User',
     role: UserRole.TESTER,
     createdAt: new Date('2024-01-01'),
+    settings: null,
+    refreshTokens: [],
   };
 
   beforeEach(async () => {
@@ -82,12 +85,15 @@ describe('AuthService', () => {
     it('should register a new user successfully', async () => {
       const createdUser: User = {
         id: 'new-user-123',
-        orgId: 'org-456',
+        organizationId: 'org-456',
+        organization: null as any,
         email: registerDto.email,
         passwordHash: 'hashed-password',
         name: registerDto.name,
         role: UserRole.TESTER,
         createdAt: new Date(),
+        settings: null,
+        refreshTokens: [],
       };
 
       usersService.findByEmail.mockResolvedValue(null);
@@ -106,11 +112,14 @@ describe('AuthService', () => {
       expect(result).not.toHaveProperty('passwordHash');
       expect(result).toEqual({
         id: createdUser.id,
-        orgId: createdUser.orgId,
+        organizationId: createdUser.organizationId,
+        organization: createdUser.organization,
         email: createdUser.email,
         name: createdUser.name,
         role: createdUser.role,
         createdAt: createdUser.createdAt,
+        settings: createdUser.settings,
+        refreshTokens: createdUser.refreshTokens,
       });
     });
 
@@ -158,7 +167,7 @@ describe('AuthService', () => {
           email: mockUser.email,
           name: mockUser.name,
           role: mockUser.role,
-          orgId: mockUser.orgId,
+          orgId: mockUser.organizationId,
         },
       });
     });

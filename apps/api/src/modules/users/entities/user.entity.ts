@@ -4,9 +4,12 @@ import {
   Column,
   CreateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   Index,
 } from 'typeorm';
 import { RefreshToken } from './refresh-token.entity';
+import { Organization } from '../../organizations/entities/organization.entity';
 
 export enum UserRole {
   VIEWER = 'viewer',
@@ -17,14 +20,18 @@ export enum UserRole {
 }
 
 @Entity('users')
-@Index(['orgId'])
+@Index(['organizationId'])
 @Index(['email'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'org_id', type: 'uuid' })
-  orgId: string;
+  @Column({ name: 'organization_id', type: 'uuid' })
+  organizationId: string;
+
+  @ManyToOne(() => Organization, (organization) => organization.users)
+  @JoinColumn({ name: 'organization_id' })
+  organization: Organization;
 
   @Column({ unique: true })
   email: string;

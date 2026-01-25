@@ -53,7 +53,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = this.generateTokens(user.id, user.email, user.orgId, user.role);
+    const tokens = this.generateTokens(user.id, user.email, user.organizationId, user.role);
 
     return {
       ...tokens,
@@ -62,7 +62,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        orgId: user.orgId,
+        orgId: user.organizationId,
       },
     };
   }
@@ -94,7 +94,7 @@ export class AuthService {
       // Invalidate old refresh token (token rotation)
       this.invalidatedTokens.add(refreshToken);
 
-      return this.generateTokens(user.id, user.email, user.orgId, user.role);
+      return this.generateTokens(user.id, user.email, user.organizationId, user.role);
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;

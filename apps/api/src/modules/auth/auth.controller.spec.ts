@@ -9,12 +9,15 @@ describe('AuthController', () => {
 
   const mockUser: User = {
     id: 'user-123',
-    orgId: 'org-456',
+    organizationId: 'org-456',
+    organization: null as any,
     email: 'test@example.com',
     passwordHash: 'hashed-password',
     name: 'Test User',
     role: UserRole.TESTER,
+    settings: null,
     createdAt: new Date('2024-01-01'),
+    refreshTokens: [],
   };
 
   beforeEach(async () => {
@@ -55,11 +58,14 @@ describe('AuthController', () => {
     it('should register a new user', async () => {
       const expectedResult = {
         id: 'new-user-123',
-        orgId: 'org-456',
+        organizationId: 'org-456',
+        organization: null as any,
         email: registerDto.email,
         name: registerDto.name,
         role: UserRole.TESTER,
+        settings: null,
         createdAt: new Date(),
+        refreshTokens: [],
       };
       authService.register.mockResolvedValue(expectedResult);
 

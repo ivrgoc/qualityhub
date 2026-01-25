@@ -5,6 +5,7 @@ import { databaseConfig, jwtConfig, typeOrmAsyncConfig } from './config';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TestCasesModule } from './modules/test-cases/test-cases.module';
 import { TestRunsModule } from './modules/test-runs/test-runs.module';
@@ -20,6 +21,7 @@ import { TestRunsModule } from './modules/test-runs/test-runs.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    OrganizationsModule,
     ProjectsModule,
     TestCasesModule,
     TestRunsModule,

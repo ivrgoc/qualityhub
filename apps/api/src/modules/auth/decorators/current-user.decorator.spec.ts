@@ -6,12 +6,15 @@ import { User, UserRole } from '../../users/entities/user.entity';
 describe('CurrentUser Decorator', () => {
   const mockUser: User = {
     id: 'user-123',
-    orgId: 'org-456',
+    organizationId: 'org-456',
+    organization: null as any,
     email: 'test@example.com',
     passwordHash: 'hashed-password',
     name: 'Test User',
     role: UserRole.TESTER,
+    settings: null,
     createdAt: new Date('2024-01-01'),
+    refreshTokens: [],
   };
 
   const createMockExecutionContext = (user: User | undefined): ExecutionContext => {
@@ -81,11 +84,11 @@ describe('CurrentUser Decorator', () => {
       expect(result).toBe(UserRole.TESTER);
     });
 
-    it('should return user orgId when "orgId" property is specified', () => {
+    it('should return user organizationId when "organizationId" property is specified', () => {
       const factory = getParamDecoratorFactory();
       const ctx = createMockExecutionContext(mockUser);
 
-      const result = factory('orgId', ctx);
+      const result = factory('organizationId', ctx);
 
       expect(result).toBe('org-456');
     });

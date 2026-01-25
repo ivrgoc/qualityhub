@@ -10,12 +10,15 @@ describe('LocalStrategy', () => {
 
   const mockUser: User = {
     id: 'user-123',
-    orgId: 'org-456',
+    organizationId: 'org-456',
+    organization: null as any,
     email: 'test@example.com',
     passwordHash: 'hashed-password',
     name: 'Test User',
     role: UserRole.TESTER,
+    settings: null,
     createdAt: new Date('2024-01-01'),
+    refreshTokens: [],
   };
 
   beforeEach(async () => {
