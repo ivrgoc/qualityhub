@@ -1,0 +1,84 @@
+[project]
+name = "qualityhub-ai-service"
+version = "0.1.0"
+description = "AI-powered test generation service for QualityHub"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "QualityHub Team" }]
+
+dependencies = [
+    "fastapi>=0.109.0,<0.110.0",
+    "uvicorn[standard]>=0.27.0,<0.28.0",
+    "pydantic>=2.5.0,<3.0.0",
+    "pydantic-settings>=2.1.0,<3.0.0",
+    "openai>=1.10.0,<2.0.0",
+    "anthropic>=0.18.0,<1.0.0",
+    "langchain>=0.1.0,<0.2.0",
+    "langchain-openai>=0.0.5,<0.1.0",
+    "langchain-anthropic>=0.1.0,<0.2.0",
+    "python-multipart>=0.0.6,<0.1.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0,<9.0.0",
+    "pytest-asyncio>=0.23.0,<0.24.0",
+    "pytest-cov>=4.1.0,<5.0.0",
+    "httpx>=0.26.0,<0.27.0",
+    "ruff>=0.1.14,<0.2.0",
+    "mypy>=1.8.0,<2.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # function call in default argument (needed for Depends)
+    "UP006", # Use `list` instead of `List` - needs Python 3.9+
+    "UP007", # Use `X | Y` for type annotations - needs Python 3.10+
+    "UP035", # `typing.List` is deprecated - needs Python 3.9+
+    "ARG001", # Unused function argument - intentional for FastAPI dependency injection
+    "ARG002", # Unused method argument - context param reserved for future use
+]
+
+[tool.ruff.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["langchain.*", "langchain_openai.*", "langchain_anthropic.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --cov=app --cov-report=term-missing"
