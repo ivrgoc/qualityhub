@@ -25,6 +25,8 @@ import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('organizations')
 @Controller('organizations')
@@ -32,6 +34,34 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiBearerAuth()
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
+
+  @Get('current')
+  @ApiOperation({ summary: 'Get current user\'s organization' })
+  @ApiOkResponse({ description: 'Current organization returned successfully' })
+  @ApiNotFoundResponse({ description: 'Organization not found' })
+  async getCurrentOrganization(@CurrentUser() user: User) {
+    return this.organizationsService.findByIdOrFail(user.organizationId);
+  }
+
+  @Patch('current')
+  @ApiOperation({ summary: 'Update current user\'s organization' })
+  @ApiOkResponse({ description: 'Organization updated successfully' })
+  @ApiNotFoundResponse({ description: 'Organization not found' })
+  @ApiConflictResponse({ description: 'Organization with this slug already exists' })
+  async updateCurrentOrganization(
+    @CurrentUser() user: User,
+    @Body() updateOrganizationDto: UpdateOrganizationDto,
+  ) {
+    return this.organizationsService.update(user.organizationId, updateOrganizationDto);
+  }
+
+  @Get('current/members')
+  @ApiOperation({ summary: 'Get members of current user\'s organization' })
+  @ApiOkResponse({ description: 'Organization members returned successfully' })
+  @ApiNotFoundResponse({ description: 'Organization not found' })
+  async getCurrentOrganizationMembers(@CurrentUser() user: User) {
+    return this.organizationsService.getMembers(user.organizationId);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Create a new organization' })
