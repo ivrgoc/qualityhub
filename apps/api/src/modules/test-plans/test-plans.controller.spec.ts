@@ -1,10 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { TestPlansController } from './test-plans.controller';
 import { TestPlansService } from './test-plans.service';
 import { TestPlan } from './entities/test-plan.entity';
+import { TestPlanEntry } from './entities/test-plan-entry.entity';
 import { CreateTestPlanDto } from './dto/create-test-plan.dto';
 import { UpdateTestPlanDto } from './dto/update-test-plan.dto';
+import { CreateTestPlanEntryDto } from './dto/create-test-plan-entry.dto';
+import { UpdateTestPlanEntryDto } from './dto/update-test-plan-entry.dto';
+import { AddEntriesDto } from './dto/add-entries.dto';
 
 describe('TestPlansController', () => {
   let controller: TestPlansController;
@@ -18,9 +22,21 @@ describe('TestPlansController', () => {
     milestone: null,
     name: 'Q1 Regression Tests',
     description: 'Comprehensive regression test plan',
+    entries: [],
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
     deletedAt: null,
+  };
+
+  const mockEntry: TestPlanEntry = {
+    id: 'entry-123',
+    testPlanId: 'plan-123',
+    testPlan: null,
+    testCaseId: 'case-456',
+    testCase: null,
+    position: 0,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
   };
 
   beforeEach(async () => {
@@ -36,6 +52,11 @@ describe('TestPlansController', () => {
             update: jest.fn(),
             delete: jest.fn(),
             findByIdWithMilestone: jest.fn(),
+            getEntries: jest.fn(),
+            addEntry: jest.fn(),
+            addEntries: jest.fn(),
+            updateEntry: jest.fn(),
+            removeEntry: jest.fn(),
           },
         },
       ],
@@ -236,6 +257,197 @@ describe('TestPlansController', () => {
       await expect(controller.getWithMilestone('proj-123', 'non-existent')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('getEntries', () => {
+    it('should return entries for a test plan', async () => {
+      service.getEntries.mockResolvedValue([mockEntry]);
+
+      const result = await controller.getEntries('proj-123', 'plan-123');
+
+      expect(service.getEntries).toHaveBeenCalledWith('proj-123', 'plan-123');
+      expect(result).toEqual([mockEntry]);
+    });
+
+    it('should return empty array when no entries exist', async () => {
+      service.getEntries.mockResolvedValue([]);
+
+      const result = await controller.getEntries('proj-123', 'plan-123');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      service.getEntries.mockRejectedValue(
+        new NotFoundException('Test plan with ID non-existent not found'),
+      );
+
+      await expect(controller.getEntries('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('addEntry', () => {
+    const createEntryDto: CreateTestPlanEntryDto = {
+      testCaseId: 'case-456',
+    };
+
+    it('should add an entry to a test plan', async () => {
+      service.addEntry.mockResolvedValue(mockEntry);
+
+      const result = await controller.addEntry('proj-123', 'plan-123', createEntryDto);
+
+      expect(service.addEntry).toHaveBeenCalledWith('proj-123', 'plan-123', createEntryDto);
+      expect(result).toEqual(mockEntry);
+    });
+
+    it('should add an entry with position', async () => {
+      const entryWithPosition: CreateTestPlanEntryDto = {
+        testCaseId: 'case-789',
+        position: 5,
+      };
+      const newEntry = { ...mockEntry, testCaseId: 'case-789', position: 5 };
+      service.addEntry.mockResolvedValue(newEntry);
+
+      const result = await controller.addEntry('proj-123', 'plan-123', entryWithPosition);
+
+      expect(service.addEntry).toHaveBeenCalledWith('proj-123', 'plan-123', entryWithPosition);
+      expect(result.position).toBe(5);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      service.addEntry.mockRejectedValue(
+        new NotFoundException('Test plan with ID non-existent not found'),
+      );
+
+      await expect(
+        controller.addEntry('proj-123', 'non-existent', createEntryDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ConflictException when test case already in plan', async () => {
+      service.addEntry.mockRejectedValue(
+        new ConflictException('Test case case-456 is already in this test plan'),
+      );
+
+      await expect(
+        controller.addEntry('proj-123', 'plan-123', createEntryDto),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('addEntries', () => {
+    const addEntriesDto: AddEntriesDto = {
+      testCaseIds: ['case-1', 'case-2'],
+    };
+
+    it('should add multiple entries to a test plan', async () => {
+      const entries = [
+        { ...mockEntry, id: 'entry-1', testCaseId: 'case-1' },
+        { ...mockEntry, id: 'entry-2', testCaseId: 'case-2' },
+      ];
+      service.addEntries.mockResolvedValue(entries);
+
+      const result = await controller.addEntries('proj-123', 'plan-123', addEntriesDto);
+
+      expect(service.addEntries).toHaveBeenCalledWith('proj-123', 'plan-123', ['case-1', 'case-2']);
+      expect(result).toEqual(entries);
+    });
+
+    it('should return empty array when all entries already exist', async () => {
+      service.addEntries.mockResolvedValue([]);
+
+      const result = await controller.addEntries('proj-123', 'plan-123', addEntriesDto);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      service.addEntries.mockRejectedValue(
+        new NotFoundException('Test plan with ID non-existent not found'),
+      );
+
+      await expect(
+        controller.addEntries('proj-123', 'non-existent', addEntriesDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateEntry', () => {
+    const updateEntryDto: UpdateTestPlanEntryDto = {
+      position: 5,
+    };
+
+    it('should update an entry', async () => {
+      const updatedEntry = { ...mockEntry, position: 5 };
+      service.updateEntry.mockResolvedValue(updatedEntry);
+
+      const result = await controller.updateEntry(
+        'proj-123',
+        'plan-123',
+        'entry-123',
+        updateEntryDto,
+      );
+
+      expect(service.updateEntry).toHaveBeenCalledWith(
+        'proj-123',
+        'plan-123',
+        'entry-123',
+        updateEntryDto,
+      );
+      expect(result.position).toBe(5);
+    });
+
+    it('should throw NotFoundException when entry not found', async () => {
+      service.updateEntry.mockRejectedValue(
+        new NotFoundException('Entry with ID non-existent not found'),
+      );
+
+      await expect(
+        controller.updateEntry('proj-123', 'plan-123', 'non-existent', updateEntryDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      service.updateEntry.mockRejectedValue(
+        new NotFoundException('Test plan with ID non-existent not found'),
+      );
+
+      await expect(
+        controller.updateEntry('proj-123', 'non-existent', 'entry-123', updateEntryDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('removeEntry', () => {
+    it('should remove an entry from a test plan', async () => {
+      service.removeEntry.mockResolvedValue(undefined);
+
+      await controller.removeEntry('proj-123', 'plan-123', 'entry-123');
+
+      expect(service.removeEntry).toHaveBeenCalledWith('proj-123', 'plan-123', 'entry-123');
+    });
+
+    it('should throw NotFoundException when entry not found', async () => {
+      service.removeEntry.mockRejectedValue(
+        new NotFoundException('Entry with ID non-existent not found'),
+      );
+
+      await expect(
+        controller.removeEntry('proj-123', 'plan-123', 'non-existent'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      service.removeEntry.mockRejectedValue(
+        new NotFoundException('Test plan with ID non-existent not found'),
+      );
+
+      await expect(
+        controller.removeEntry('proj-123', 'non-existent', 'entry-123'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

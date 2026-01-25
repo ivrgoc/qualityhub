@@ -6,11 +6,13 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   Index,
 } from 'typeorm';
 import { Project } from '../../projects/entities/project.entity';
 import { Milestone } from '../../milestones/entities/milestone.entity';
+import type { TestPlanEntry } from './test-plan-entry.entity';
 
 @Entity('test_plans')
 @Index(['projectId'])
@@ -47,4 +49,7 @@ export class TestPlan {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date | null;
+
+  @OneToMany('TestPlanEntry', 'testPlan')
+  entries: TestPlanEntry[];
 }

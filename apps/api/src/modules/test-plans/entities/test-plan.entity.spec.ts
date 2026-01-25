@@ -1,4 +1,5 @@
 import { TestPlan } from './test-plan.entity';
+import { TestPlanEntry } from './test-plan-entry.entity';
 import { Project } from '../../projects/entities/project.entity';
 import { Milestone } from '../../milestones/entities/milestone.entity';
 
@@ -184,6 +185,32 @@ describe('TestPlan Entity', () => {
       expect(testPlan.milestoneId).toBeNull();
       expect(testPlan.name).toBe('Standalone Tests');
       expect(testPlan.description).toBeNull();
+    });
+  });
+
+  describe('entries relation', () => {
+    it('should have entries relation', () => {
+      const testPlan = new TestPlan();
+      const entry1 = new TestPlanEntry();
+      const entry2 = new TestPlanEntry();
+
+      entry1.id = 'entry-1';
+      entry1.position = 0;
+      entry2.id = 'entry-2';
+      entry2.position = 1;
+
+      testPlan.entries = [entry1, entry2];
+
+      expect(testPlan.entries).toHaveLength(2);
+      expect(testPlan.entries[0].id).toBe('entry-1');
+      expect(testPlan.entries[1].id).toBe('entry-2');
+    });
+
+    it('should support empty entries array', () => {
+      const testPlan = new TestPlan();
+      testPlan.entries = [];
+
+      expect(testPlan.entries).toHaveLength(0);
     });
   });
 });

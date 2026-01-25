@@ -1,15 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { TestPlansService } from './test-plans.service';
 import { TestPlan } from './entities/test-plan.entity';
+import { TestPlanEntry } from './entities/test-plan-entry.entity';
 import { CreateTestPlanDto } from './dto/create-test-plan.dto';
 import { UpdateTestPlanDto } from './dto/update-test-plan.dto';
+import { CreateTestPlanEntryDto } from './dto/create-test-plan-entry.dto';
+import { UpdateTestPlanEntryDto } from './dto/update-test-plan-entry.dto';
 
 describe('TestPlansService', () => {
   let service: TestPlansService;
   let testPlanRepository: jest.Mocked<Repository<TestPlan>>;
+  let testPlanEntryRepository: jest.Mocked<Repository<TestPlanEntry>>;
 
   const mockTestPlan: TestPlan = {
     id: 'plan-123',
@@ -19,9 +23,27 @@ describe('TestPlansService', () => {
     milestone: null,
     name: 'Q1 Regression Tests',
     description: 'Comprehensive regression test plan',
+    entries: [],
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
     deletedAt: null,
+  };
+
+  const mockEntry: TestPlanEntry = {
+    id: 'entry-123',
+    testPlanId: 'plan-123',
+    testPlan: null,
+    testCaseId: 'case-456',
+    testCase: null,
+    position: 0,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
+
+  const mockQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    getRawOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -38,11 +60,23 @@ describe('TestPlansService', () => {
             softDelete: jest.fn(),
           },
         },
+        {
+          provide: getRepositoryToken(TestPlanEntry),
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            findOne: jest.fn(),
+            find: jest.fn(),
+            delete: jest.fn(),
+            createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<TestPlansService>(TestPlansService);
     testPlanRepository = module.get(getRepositoryToken(TestPlan));
+    testPlanEntryRepository = module.get(getRepositoryToken(TestPlanEntry));
   });
 
   afterEach(() => {
@@ -360,6 +394,287 @@ describe('TestPlansService', () => {
       await expect(service.findByIdWithMilestone('proj-123', 'non-existent')).rejects.toThrow(
         'Test plan with ID non-existent not found',
       );
+    });
+  });
+
+  describe('findByIdWithEntries', () => {
+    it('should find a test plan with entries', async () => {
+      const testPlanWithEntries = {
+        ...mockTestPlan,
+        entries: [mockEntry],
+      };
+      testPlanRepository.findOne.mockResolvedValue(testPlanWithEntries);
+
+      const result = await service.findByIdWithEntries('proj-123', 'plan-123');
+
+      expect(testPlanRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'plan-123', projectId: 'proj-123' },
+        relations: ['entries', 'entries.testCase'],
+      });
+      expect(result).toEqual(testPlanWithEntries);
+      expect(result.entries).toHaveLength(1);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findByIdWithEntries('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getEntries', () => {
+    it('should return entries for a test plan', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.find.mockResolvedValue([mockEntry]);
+
+      const result = await service.getEntries('proj-123', 'plan-123');
+
+      expect(testPlanEntryRepository.find).toHaveBeenCalledWith({
+        where: { testPlanId: 'plan-123' },
+        relations: ['testCase'],
+        order: { position: 'ASC' },
+      });
+      expect(result).toEqual([mockEntry]);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.getEntries('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should return empty array when no entries exist', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.find.mockResolvedValue([]);
+
+      const result = await service.getEntries('proj-123', 'plan-123');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('addEntry', () => {
+    const createEntryDto: CreateTestPlanEntryDto = {
+      testCaseId: 'case-456',
+    };
+
+    it('should add a new entry to test plan', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue(null);
+      mockQueryBuilder.getRawOne.mockResolvedValue({ maxPosition: null });
+      testPlanEntryRepository.create.mockReturnValue(mockEntry);
+      testPlanEntryRepository.save.mockResolvedValue(mockEntry);
+
+      const result = await service.addEntry('proj-123', 'plan-123', createEntryDto);
+
+      expect(testPlanEntryRepository.create).toHaveBeenCalledWith({
+        testPlanId: 'plan-123',
+        testCaseId: 'case-456',
+        position: 0,
+      });
+      expect(result).toEqual(mockEntry);
+    });
+
+    it('should throw ConflictException when test case already in plan', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue(mockEntry);
+
+      await expect(
+        service.addEntry('proj-123', 'plan-123', createEntryDto),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should add entry with specified position', async () => {
+      const entryWithPosition: CreateTestPlanEntryDto = {
+        testCaseId: 'case-789',
+        position: 5,
+      };
+      const newEntry = { ...mockEntry, testCaseId: 'case-789', position: 5 };
+
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue(null);
+      testPlanEntryRepository.create.mockReturnValue(newEntry);
+      testPlanEntryRepository.save.mockResolvedValue(newEntry);
+
+      const result = await service.addEntry('proj-123', 'plan-123', entryWithPosition);
+
+      expect(testPlanEntryRepository.create).toHaveBeenCalledWith({
+        testPlanId: 'plan-123',
+        testCaseId: 'case-789',
+        position: 5,
+      });
+      expect(result.position).toBe(5);
+    });
+
+    it('should auto-increment position when not specified', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue(null);
+      mockQueryBuilder.getRawOne.mockResolvedValue({ maxPosition: 3 });
+      testPlanEntryRepository.create.mockReturnValue({ ...mockEntry, position: 4 });
+      testPlanEntryRepository.save.mockResolvedValue({ ...mockEntry, position: 4 });
+
+      const result = await service.addEntry('proj-123', 'plan-123', createEntryDto);
+
+      expect(testPlanEntryRepository.create).toHaveBeenCalledWith({
+        testPlanId: 'plan-123',
+        testCaseId: 'case-456',
+        position: 4,
+      });
+      expect(result.position).toBe(4);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.addEntry('proj-123', 'non-existent', createEntryDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('addEntries', () => {
+    it('should add multiple entries to test plan', async () => {
+      const testCaseIds = ['case-1', 'case-2'];
+      const entries = [
+        { ...mockEntry, id: 'entry-1', testCaseId: 'case-1', position: 0 },
+        { ...mockEntry, id: 'entry-2', testCaseId: 'case-2', position: 1 },
+      ];
+
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.find.mockResolvedValue([]);
+      mockQueryBuilder.getRawOne.mockResolvedValue({ maxPosition: null });
+      testPlanEntryRepository.create
+        .mockReturnValueOnce(entries[0])
+        .mockReturnValueOnce(entries[1]);
+      testPlanEntryRepository.save.mockResolvedValue(entries);
+
+      const result = await service.addEntries('proj-123', 'plan-123', testCaseIds);
+
+      expect(result).toEqual(entries);
+    });
+
+    it('should skip existing entries', async () => {
+      const testCaseIds = ['case-1', 'case-2'];
+      const existingEntry = { ...mockEntry, testCaseId: 'case-1' };
+      const newEntry = { ...mockEntry, id: 'entry-2', testCaseId: 'case-2', position: 1 };
+
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.find.mockResolvedValue([existingEntry]);
+      mockQueryBuilder.getRawOne.mockResolvedValue({ maxPosition: 0 });
+      testPlanEntryRepository.create.mockReturnValue(newEntry);
+      testPlanEntryRepository.save.mockResolvedValue([newEntry]);
+
+      const result = await service.addEntries('proj-123', 'plan-123', testCaseIds);
+
+      expect(testPlanEntryRepository.create).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([newEntry]);
+    });
+
+    it('should return empty array when all entries already exist', async () => {
+      const testCaseIds = ['case-1'];
+      const existingEntry = { ...mockEntry, testCaseId: 'case-1' };
+
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.find.mockResolvedValue([existingEntry]);
+
+      const result = await service.addEntries('proj-123', 'plan-123', testCaseIds);
+
+      expect(result).toEqual([]);
+      expect(testPlanEntryRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.addEntries('proj-123', 'non-existent', ['case-1']),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateEntry', () => {
+    const updateEntryDto: UpdateTestPlanEntryDto = {
+      position: 5,
+    };
+
+    it('should update an entry', async () => {
+      const updatedEntry = { ...mockEntry, position: 5 };
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue({ ...mockEntry });
+      testPlanEntryRepository.save.mockResolvedValue(updatedEntry);
+
+      const result = await service.updateEntry('proj-123', 'plan-123', 'entry-123', updateEntryDto);
+
+      expect(result.position).toBe(5);
+    });
+
+    it('should throw NotFoundException when entry not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.updateEntry('proj-123', 'plan-123', 'non-existent', updateEntryDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.updateEntry('proj-123', 'non-existent', 'entry-123', updateEntryDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('removeEntry', () => {
+    it('should remove an entry', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue(mockEntry);
+      testPlanEntryRepository.delete.mockResolvedValue({ affected: 1, raw: [] });
+
+      await service.removeEntry('proj-123', 'plan-123', 'entry-123');
+
+      expect(testPlanEntryRepository.delete).toHaveBeenCalledWith('entry-123');
+    });
+
+    it('should throw NotFoundException when entry not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.removeEntry('proj-123', 'plan-123', 'non-existent'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.removeEntry('proj-123', 'non-existent', 'entry-123'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('removeEntries', () => {
+    it('should remove multiple entries', async () => {
+      testPlanRepository.findOne.mockResolvedValue(mockTestPlan);
+      testPlanEntryRepository.delete.mockResolvedValue({ affected: 2, raw: [] });
+
+      await service.removeEntries('proj-123', 'plan-123', ['entry-1', 'entry-2']);
+
+      expect(testPlanEntryRepository.delete).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when test plan not found', async () => {
+      testPlanRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.removeEntries('proj-123', 'non-existent', ['entry-1']),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });
