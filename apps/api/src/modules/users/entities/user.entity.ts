@@ -3,7 +3,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  OneToMany,
+  Index,
 } from 'typeorm';
+import { RefreshToken } from './refresh-token.entity';
 
 export enum UserRole {
   VIEWER = 'viewer',
@@ -14,6 +17,8 @@ export enum UserRole {
 }
 
 @Entity('users')
+@Index(['orgId'])
+@Index(['email'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -37,6 +42,12 @@ export class User {
   })
   role: UserRole;
 
+  @Column({ type: 'jsonb', nullable: true })
+  settings: Record<string, unknown> | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
+  refreshTokens: RefreshToken[];
 }

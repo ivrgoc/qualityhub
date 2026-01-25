@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThan, IsNull } from 'typeorm';
 import { User } from './entities/user.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
@@ -9,6 +10,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -26,5 +29,46 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
+  }
+
+  async createRefreshToken(
+    userId: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<RefreshToken> {
+    const refreshToken = this.refreshTokenRepository.create({
+      userId,
+      token,
+      expiresAt,
+    });
+    return this.refreshTokenRepository.save(refreshToken);
+  }
+
+  async findRefreshToken(token: string): Promise<RefreshToken | null> {
+    return this.refreshTokenRepository.findOne({
+      where: { token, revokedAt: IsNull() },
+      relations: ['user'],
+    });
+  }
+
+  async revokeRefreshToken(token: string): Promise<void> {
+    await this.refreshTokenRepository.update(
+      { token },
+      { revokedAt: new Date() },
+    );
+  }
+
+  async revokeAllUserRefreshTokens(userId: string): Promise<void> {
+    await this.refreshTokenRepository.update(
+      { userId, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
+  }
+
+  async deleteExpiredRefreshTokens(): Promise<number> {
+    const result = await this.refreshTokenRepository.delete({
+      expiresAt: LessThan(new Date()),
+    });
+    return result.affected ?? 0;
   }
 }
