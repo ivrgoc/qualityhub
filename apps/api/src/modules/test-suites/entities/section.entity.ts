@@ -9,6 +9,7 @@ import {
   Index,
 } from 'typeorm';
 import { TestSuite } from './test-suite.entity';
+import { TestCase } from '../../test-cases/entities/test-case.entity';
 
 @Entity('sections')
 @Index(['suiteId'])
@@ -42,4 +43,7 @@ export class Section {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @OneToMany(() => TestCase, (testCase) => testCase.section)
+  testCases: TestCase[];
 }

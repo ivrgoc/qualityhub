@@ -1,5 +1,6 @@
 import { Section } from './section.entity';
 import { TestSuite } from './test-suite.entity';
+import { TestCase } from '../../test-cases/entities/test-case.entity';
 
 describe('Section Entity', () => {
   it('should create a section instance', () => {
@@ -121,5 +122,59 @@ describe('Section Entity', () => {
     section.position = 0;
 
     expect(section.position).toBe(0);
+  });
+
+  it('should have test cases relation', () => {
+    const section = new Section();
+    section.id = 'section-123';
+    section.name = 'Login Tests';
+
+    const testCase1 = new TestCase();
+    testCase1.id = 'tc-1';
+    testCase1.title = 'Valid login test';
+    testCase1.sectionId = section.id;
+    testCase1.section = section;
+
+    const testCase2 = new TestCase();
+    testCase2.id = 'tc-2';
+    testCase2.title = 'Invalid login test';
+    testCase2.sectionId = section.id;
+    testCase2.section = section;
+
+    section.testCases = [testCase1, testCase2];
+
+    expect(section.testCases).toHaveLength(2);
+    expect(section.testCases[0].id).toBe('tc-1');
+    expect(section.testCases[0].title).toBe('Valid login test');
+    expect(section.testCases[1].id).toBe('tc-2');
+    expect(section.testCases[1].title).toBe('Invalid login test');
+  });
+
+  it('should handle empty test cases array', () => {
+    const section = new Section();
+    section.id = 'section-123';
+    section.name = 'Empty Section';
+    section.testCases = [];
+
+    expect(section.testCases).toHaveLength(0);
+    expect(section.testCases).toEqual([]);
+  });
+
+  it('should support bidirectional relation with test cases', () => {
+    const section = new Section();
+    section.id = 'section-123';
+    section.name = 'Test Section';
+
+    const testCase = new TestCase();
+    testCase.id = 'tc-1';
+    testCase.title = 'Test case';
+    testCase.sectionId = section.id;
+    testCase.section = section;
+
+    section.testCases = [testCase];
+
+    expect(testCase.section).toBe(section);
+    expect(testCase.sectionId).toBe(section.id);
+    expect(section.testCases).toContain(testCase);
   });
 });

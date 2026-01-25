@@ -7,8 +7,10 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Project } from '../../projects/entities/project.entity';
+import { Section } from '../../test-suites/entities/section.entity';
 
 export enum TestCaseTemplate {
   STEPS = 'steps',
@@ -25,6 +27,7 @@ export enum Priority {
 }
 
 @Entity('test_cases')
+@Index(['sectionId'])
 export class TestCase {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -71,6 +74,13 @@ export class TestCase {
   @ManyToOne(() => Project)
   @JoinColumn({ name: 'project_id' })
   project: Project;
+
+  @Column({ name: 'section_id', type: 'uuid', nullable: true })
+  sectionId: string | null;
+
+  @ManyToOne(() => Section, (section) => section.testCases, { nullable: true })
+  @JoinColumn({ name: 'section_id' })
+  section: Section | null;
 
   @Column({ name: 'created_by', nullable: true })
   createdBy: string;
