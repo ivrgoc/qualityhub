@@ -307,6 +307,37 @@ describe('TestRunsService', () => {
     });
   });
 
+  describe('closeRun', () => {
+    it('should close a test run', async () => {
+      testRunRepository.findOne.mockResolvedValue({ ...mockTestRun });
+      testRunRepository.save.mockImplementation(async (run) => run as TestRun);
+
+      const result = await service.closeRun('proj-123', 'run-123');
+
+      expect(result.status).toBe(TestRunStatus.COMPLETED);
+      expect(result.completedAt).toBeDefined();
+    });
+
+    it('should preserve existing completedAt when closing', async () => {
+      const existingCompletedAt = new Date('2024-01-15');
+      const runWithCompletedAt = { ...mockTestRun, completedAt: existingCompletedAt };
+      testRunRepository.findOne.mockResolvedValue(runWithCompletedAt);
+      testRunRepository.save.mockImplementation(async (run) => run as TestRun);
+
+      const result = await service.closeRun('proj-123', 'run-123');
+
+      expect(result.completedAt).toEqual(existingCompletedAt);
+    });
+
+    it('should throw NotFoundException when test run not found', async () => {
+      testRunRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.closeRun('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
   // ============ Test Result Operations ============
 
   describe('getResults', () => {

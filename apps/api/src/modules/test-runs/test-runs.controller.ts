@@ -111,6 +111,17 @@ export class TestRunsController {
     return this.testRunsService.completeRun(projectId, id);
   }
 
+  @Post(':id/close')
+  @ApiOperation({ summary: 'Close a test run' })
+  @ApiOkResponse({ description: 'Test run closed' })
+  @ApiNotFoundResponse({ description: 'Test run not found' })
+  async closeRun(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.testRunsService.closeRun(projectId, id);
+  }
+
   @Get(':id/progress')
   @ApiOperation({ summary: 'Get test run progress' })
   @ApiOkResponse({ description: 'Test run progress' })

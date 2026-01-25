@@ -109,6 +109,13 @@ export class TestRunsService {
     return this.testRunRepository.save(testRun);
   }
 
+  async closeRun(projectId: string, id: string): Promise<TestRun> {
+    const testRun = await this.findByIdOrFail(projectId, id);
+    testRun.status = TestRunStatus.COMPLETED;
+    testRun.completedAt = testRun.completedAt || new Date();
+    return this.testRunRepository.save(testRun);
+  }
+
   // ============ Test Result Operations ============
 
   async getResults(projectId: string, testRunId: string): Promise<TestResult[]> {

@@ -63,6 +63,7 @@ describe('TestRunsController', () => {
             delete: jest.fn(),
             startRun: jest.fn(),
             completeRun: jest.fn(),
+            closeRun: jest.fn(),
             getRunStatistics: jest.fn(),
             getProgress: jest.fn(),
             getResults: jest.fn(),
@@ -246,6 +247,32 @@ describe('TestRunsController', () => {
 
       expect(service.completeRun).toHaveBeenCalledWith('proj-123', 'run-123');
       expect(result.status).toBe(TestRunStatus.COMPLETED);
+    });
+  });
+
+  describe('closeRun', () => {
+    it('should close a test run', async () => {
+      const closedRun = {
+        ...mockTestRun,
+        status: TestRunStatus.COMPLETED,
+        completedAt: new Date(),
+      };
+      service.closeRun.mockResolvedValue(closedRun);
+
+      const result = await controller.closeRun('proj-123', 'run-123');
+
+      expect(service.closeRun).toHaveBeenCalledWith('proj-123', 'run-123');
+      expect(result.status).toBe(TestRunStatus.COMPLETED);
+    });
+
+    it('should throw NotFoundException when test run not found', async () => {
+      service.closeRun.mockRejectedValue(
+        new NotFoundException('Test run with ID non-existent not found'),
+      );
+
+      await expect(controller.closeRun('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
