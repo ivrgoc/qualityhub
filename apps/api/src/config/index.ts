@@ -1,4 +1,4 @@
-export { default as databaseConfig } from './database.config';
+export { default as databaseConfig, typeOrmAsyncConfig } from './database.config';
 export { default as jwtConfig } from './jwt.config';
 export {
   databaseConfig as typedDatabaseConfig,
