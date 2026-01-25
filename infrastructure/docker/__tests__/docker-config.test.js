@@ -143,6 +143,62 @@ describe('Docker Configuration', () => {
     });
   });
 
+  describe('Dockerfile.ai', () => {
+    const dockerfilePath = path.join(DOCKER_DIR, 'Dockerfile.ai');
+    let content;
+
+    beforeAll(() => {
+      content = fs.readFileSync(dockerfilePath, 'utf8');
+    });
+
+    test('file exists', () => {
+      expect(fs.existsSync(dockerfilePath)).toBe(true);
+    });
+
+    test('uses multi-stage build', () => {
+      expect(content).toMatch(/FROM.*AS builder/i);
+      expect(content).toMatch(/FROM.*AS production/i);
+    });
+
+    test('uses Python 3.11 base image', () => {
+      expect(content).toMatch(/FROM python:3\.11-slim/i);
+    });
+
+    test('creates virtual environment', () => {
+      expect(content).toMatch(/python -m venv/);
+    });
+
+    test('creates non-root user', () => {
+      expect(content).toMatch(/useradd.*appuser/i);
+      expect(content).toMatch(/USER appuser/i);
+    });
+
+    test('sets Python environment variables', () => {
+      expect(content).toMatch(/PYTHONDONTWRITEBYTECODE=1/);
+      expect(content).toMatch(/PYTHONUNBUFFERED=1/);
+    });
+
+    test('exposes port 8000', () => {
+      expect(content).toMatch(/EXPOSE 8000/);
+    });
+
+    test('includes health check', () => {
+      expect(content).toMatch(/HEALTHCHECK/);
+    });
+
+    test('starts with uvicorn', () => {
+      expect(content).toMatch(/uvicorn/);
+    });
+
+    test('installs requirements from ai-service', () => {
+      expect(content).toMatch(/apps\/ai-service\/requirements\.txt/);
+    });
+
+    test('copies app from ai-service', () => {
+      expect(content).toMatch(/COPY apps\/ai-service\/app/);
+    });
+  });
+
   describe('docker-compose.yml', () => {
     const composePath = path.join(DOCKER_DIR, 'docker-compose.yml');
     let content;
