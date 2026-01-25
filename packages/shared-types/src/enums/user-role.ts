@@ -2,8 +2,7 @@ export enum UserRole {
   VIEWER = 'viewer',
   TESTER = 'tester',
   LEAD = 'lead',
-  PROJECT_ADMIN = 'project_admin',
-  ORG_ADMIN = 'org_admin',
+  ADMIN = 'admin',
 }
 
 export const USER_ROLE_VALUES = Object.values(UserRole);

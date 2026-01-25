@@ -82,17 +82,16 @@ describe('UserRole', () => {
     expect(UserRole.VIEWER).toBe('viewer');
     expect(UserRole.TESTER).toBe('tester');
     expect(UserRole.LEAD).toBe('lead');
-    expect(UserRole.PROJECT_ADMIN).toBe('project_admin');
-    expect(UserRole.ORG_ADMIN).toBe('org_admin');
+    expect(UserRole.ADMIN).toBe('admin');
   });
 
   it('should export all values', () => {
-    expect(USER_ROLE_VALUES).toHaveLength(5);
+    expect(USER_ROLE_VALUES).toHaveLength(4);
   });
 
   it('should validate role correctly', () => {
     expect(isUserRole('tester')).toBe(true);
-    expect(isUserRole('org_admin')).toBe(true);
-    expect(isUserRole('admin')).toBe(false);
+    expect(isUserRole('admin')).toBe(true);
+    expect(isUserRole('superadmin')).toBe(false);
   });
 });
