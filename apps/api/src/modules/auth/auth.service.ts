@@ -22,14 +22,15 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const passwordHash = await bcrypt.hash(registerDto.password, 10);
     const user = await this.usersService.create({
-      ...registerDto,
-      password: hashedPassword,
+      email: registerDto.email,
+      name: registerDto.name,
+      passwordHash,
     });
 
-    const { password: _password, ...result } = user;
-    void _password;
+    const { passwordHash: _, ...result } = user;
+    void _;
     return result;
   }
 
@@ -41,7 +42,7 @@ export class AuthService {
 
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
-      user.password,
+      user.passwordHash,
     );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');

@@ -1,0 +1,103 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { User, UserRole } from '../users/entities/user.entity';
+
+describe('AuthController', () => {
+  let controller: AuthController;
+  let authService: jest.Mocked<AuthService>;
+
+  const mockUser: User = {
+    id: 'user-123',
+    orgId: 'org-456',
+    email: 'test@example.com',
+    passwordHash: 'hashed-password',
+    name: 'Test User',
+    role: UserRole.TESTER,
+    createdAt: new Date('2024-01-01'),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AuthController],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            register: jest.fn(),
+            login: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    controller = module.get<AuthController>(AuthController);
+    authService = module.get(AuthService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('register', () => {
+    const registerDto = {
+      email: 'new@example.com',
+      password: 'password123',
+      name: 'New User',
+    };
+
+    it('should register a new user', async () => {
+      const expectedResult = {
+        id: 'new-user-123',
+        orgId: 'org-456',
+        email: registerDto.email,
+        name: registerDto.name,
+        role: UserRole.TESTER,
+        createdAt: new Date(),
+      };
+      authService.register.mockResolvedValue(expectedResult);
+
+      const result = await controller.register(registerDto);
+
+      expect(authService.register).toHaveBeenCalledWith(registerDto);
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('login', () => {
+    const loginDto = {
+      email: 'test@example.com',
+      password: 'password123',
+    };
+
+    it('should login with valid credentials', async () => {
+      const expectedResult = {
+        accessToken: 'jwt-token-123',
+        user: {
+          id: mockUser.id,
+          email: mockUser.email,
+          name: mockUser.name,
+          role: mockUser.role,
+        },
+      };
+      authService.login.mockResolvedValue(expectedResult);
+
+      const result = await controller.login(loginDto);
+
+      expect(authService.login).toHaveBeenCalledWith(loginDto);
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('getProfile', () => {
+    it('should return the current user profile', async () => {
+      const result = await controller.getProfile(mockUser);
+
+      expect(result).toEqual(mockUser);
+    });
+  });
+});
