@@ -107,6 +107,20 @@ export class AuthService {
     return this.usersService.findById(userId);
   }
 
+  async validateUserCredentials(email: string, password: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    return user;
+  }
+
   private generateTokens(
     userId: string,
     email: string,

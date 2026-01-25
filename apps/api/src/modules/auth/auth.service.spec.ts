@@ -325,4 +325,41 @@ describe('AuthService', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('validateUserCredentials', () => {
+    const email = 'test@example.com';
+    const password = 'password123';
+
+    it('should return user when credentials are valid', async () => {
+      usersService.findByEmail.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const result = await service.validateUserCredentials(email, password);
+
+      expect(usersService.findByEmail).toHaveBeenCalledWith(email);
+      expect(bcrypt.compare).toHaveBeenCalledWith(password, mockUser.passwordHash);
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should return null when user not found', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+
+      const result = await service.validateUserCredentials(email, password);
+
+      expect(usersService.findByEmail).toHaveBeenCalledWith(email);
+      expect(bcrypt.compare).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    it('should return null when password is invalid', async () => {
+      usersService.findByEmail.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      const result = await service.validateUserCredentials(email, password);
+
+      expect(usersService.findByEmail).toHaveBeenCalledWith(email);
+      expect(bcrypt.compare).toHaveBeenCalledWith(password, mockUser.passwordHash);
+      expect(result).toBeNull();
+    });
+  });
 });
