@@ -16,7 +16,8 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "typecheck": "turbo run typecheck",
     "validate:turbo": "node scripts/validate-turbo-config.js",
-    "validate:tsconfig": "node scripts/validate-tsconfig.js"
+    "validate:tsconfig": "node scripts/validate-tsconfig.js",
+    "validate:env": "node scripts/validate-env-example.js"
   },
   "keywords": [
     "test-management",
