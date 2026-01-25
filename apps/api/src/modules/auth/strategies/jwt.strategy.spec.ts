@@ -54,6 +54,7 @@ describe('JwtStrategy', () => {
     const payload = {
       sub: 'user-123',
       email: 'test@example.com',
+      orgId: 'org-456',
       role: 'tester',
     };
 
