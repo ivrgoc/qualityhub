@@ -83,4 +83,26 @@ export class MilestonesController {
   ) {
     return this.milestonesService.delete(projectId, id);
   }
+
+  @Get(':id/progress')
+  @ApiOperation({ summary: 'Get milestone progress' })
+  @ApiOkResponse({ description: 'Milestone progress retrieved successfully' })
+  @ApiNotFoundResponse({ description: 'Milestone not found' })
+  async getProgress(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.milestonesService.getProgress(projectId, id);
+  }
+
+  @Get(':id/test-plans')
+  @ApiOperation({ summary: 'Get milestone with test plans' })
+  @ApiOkResponse({ description: 'Milestone with test plans retrieved successfully' })
+  @ApiNotFoundResponse({ description: 'Milestone not found' })
+  async getWithTestPlans(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.milestonesService.findByIdWithTestPlans(projectId, id);
+  }
 }

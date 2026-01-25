@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { MilestonesController } from './milestones.controller';
-import { MilestonesService } from './milestones.service';
+import { MilestonesService, MilestoneProgress } from './milestones.service';
 import { Milestone } from './entities/milestone.entity';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
 import { UpdateMilestoneDto } from './dto/update-milestone.dto';
@@ -35,6 +35,8 @@ describe('MilestonesController', () => {
             findByIdOrFail: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
+            getProgress: jest.fn(),
+            findByIdWithTestPlans: jest.fn(),
           },
         },
       ],
@@ -193,6 +195,87 @@ describe('MilestonesController', () => {
       );
 
       await expect(controller.delete('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getProgress', () => {
+    const mockProgress: MilestoneProgress = {
+      milestoneId: 'milestone-123',
+      totalTestPlans: 5,
+      isCompleted: false,
+      progressPercentage: 0,
+    };
+
+    it('should return milestone progress', async () => {
+      service.getProgress.mockResolvedValue(mockProgress);
+
+      const result = await controller.getProgress('proj-123', 'milestone-123');
+
+      expect(service.getProgress).toHaveBeenCalledWith('proj-123', 'milestone-123');
+      expect(result).toEqual(mockProgress);
+    });
+
+    it('should return 100% progress for completed milestone', async () => {
+      const completedProgress: MilestoneProgress = {
+        ...mockProgress,
+        isCompleted: true,
+        progressPercentage: 100,
+      };
+      service.getProgress.mockResolvedValue(completedProgress);
+
+      const result = await controller.getProgress('proj-123', 'milestone-123');
+
+      expect(result.isCompleted).toBe(true);
+      expect(result.progressPercentage).toBe(100);
+    });
+
+    it('should throw NotFoundException when milestone not found', async () => {
+      service.getProgress.mockRejectedValue(
+        new NotFoundException('Milestone with ID non-existent not found'),
+      );
+
+      await expect(controller.getProgress('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getWithTestPlans', () => {
+    const mockMilestoneWithTestPlans = {
+      ...mockMilestone,
+      testPlans: [
+        { id: 'tp-1', name: 'Test Plan 1', milestoneId: 'milestone-123' },
+        { id: 'tp-2', name: 'Test Plan 2', milestoneId: 'milestone-123' },
+      ],
+    };
+
+    it('should return milestone with test plans', async () => {
+      service.findByIdWithTestPlans.mockResolvedValue(mockMilestoneWithTestPlans);
+
+      const result = await controller.getWithTestPlans('proj-123', 'milestone-123');
+
+      expect(service.findByIdWithTestPlans).toHaveBeenCalledWith('proj-123', 'milestone-123');
+      expect(result).toEqual(mockMilestoneWithTestPlans);
+      expect(result.testPlans).toHaveLength(2);
+    });
+
+    it('should return milestone with empty test plans array', async () => {
+      const milestoneNoTestPlans = { ...mockMilestone, testPlans: [] };
+      service.findByIdWithTestPlans.mockResolvedValue(milestoneNoTestPlans);
+
+      const result = await controller.getWithTestPlans('proj-123', 'milestone-123');
+
+      expect(result.testPlans).toEqual([]);
+    });
+
+    it('should throw NotFoundException when milestone not found', async () => {
+      service.findByIdWithTestPlans.mockRejectedValue(
+        new NotFoundException('Milestone with ID non-existent not found'),
+      );
+
+      await expect(controller.getWithTestPlans('proj-123', 'non-existent')).rejects.toThrow(
         NotFoundException,
       );
     });
