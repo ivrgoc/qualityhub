@@ -64,6 +64,7 @@ describe('TestRunsController', () => {
             startRun: jest.fn(),
             completeRun: jest.fn(),
             getRunStatistics: jest.fn(),
+            getProgress: jest.fn(),
             getResults: jest.fn(),
             addResult: jest.fn(),
             findResultByIdOrFail: jest.fn(),
@@ -274,6 +275,66 @@ describe('TestRunsController', () => {
       );
 
       await expect(controller.getStatistics('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getProgress', () => {
+    const mockProgress = {
+      testRunId: 'run-123',
+      total: 10,
+      executed: 7,
+      remaining: 3,
+      progressPercentage: 70,
+      status: TestRunStatus.IN_PROGRESS,
+    };
+
+    it('should return progress for a test run', async () => {
+      service.getProgress.mockResolvedValue(mockProgress);
+
+      const result = await controller.getProgress('proj-123', 'run-123');
+
+      expect(service.getProgress).toHaveBeenCalledWith('proj-123', 'run-123');
+      expect(result).toEqual(mockProgress);
+    });
+
+    it('should return 0% progress when no tests executed', async () => {
+      const noProgressResult = {
+        ...mockProgress,
+        executed: 0,
+        remaining: 10,
+        progressPercentage: 0,
+      };
+      service.getProgress.mockResolvedValue(noProgressResult);
+
+      const result = await controller.getProgress('proj-123', 'run-123');
+
+      expect(result.progressPercentage).toBe(0);
+      expect(result.executed).toBe(0);
+    });
+
+    it('should return 100% progress when all tests executed', async () => {
+      const fullProgressResult = {
+        ...mockProgress,
+        executed: 10,
+        remaining: 0,
+        progressPercentage: 100,
+      };
+      service.getProgress.mockResolvedValue(fullProgressResult);
+
+      const result = await controller.getProgress('proj-123', 'run-123');
+
+      expect(result.progressPercentage).toBe(100);
+      expect(result.remaining).toBe(0);
+    });
+
+    it('should throw NotFoundException when test run not found', async () => {
+      service.getProgress.mockRejectedValue(
+        new NotFoundException('Test run with ID non-existent not found'),
+      );
+
+      await expect(controller.getProgress('proj-123', 'non-existent')).rejects.toThrow(
         NotFoundException,
       );
     });

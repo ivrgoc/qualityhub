@@ -111,6 +111,17 @@ export class TestRunsController {
     return this.testRunsService.completeRun(projectId, id);
   }
 
+  @Get(':id/progress')
+  @ApiOperation({ summary: 'Get test run progress' })
+  @ApiOkResponse({ description: 'Test run progress' })
+  @ApiNotFoundResponse({ description: 'Test run not found' })
+  async getProgress(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.testRunsService.getProgress(projectId, id);
+  }
+
   @Get(':id/statistics')
   @ApiOperation({ summary: 'Get test run statistics' })
   @ApiOkResponse({ description: 'Test run statistics' })

@@ -244,6 +244,53 @@ export class TestRunsService {
     await this.testResultRepository.delete(resultId);
   }
 
+  // ============ Progress Aggregation ============
+
+  async getProgress(
+    projectId: string,
+    testRunId: string,
+  ): Promise<{
+    testRunId: string;
+    total: number;
+    executed: number;
+    remaining: number;
+    progressPercentage: number;
+    status: TestRunStatus;
+  }> {
+    const testRun = await this.findByIdOrFail(projectId, testRunId);
+
+    const results = await this.testResultRepository
+      .createQueryBuilder('result')
+      .select('result.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .where('result.test_run_id = :testRunId', { testRunId })
+      .groupBy('result.status')
+      .getRawMany();
+
+    let total = 0;
+    let untested = 0;
+
+    for (const row of results) {
+      const count = parseInt(row.count, 10);
+      total += count;
+      if (row.status === TestStatus.UNTESTED) {
+        untested = count;
+      }
+    }
+
+    const executed = total - untested;
+    const progressPercentage = total > 0 ? Math.round((executed / total) * 100) : 0;
+
+    return {
+      testRunId,
+      total,
+      executed,
+      remaining: untested,
+      progressPercentage,
+      status: testRun.status,
+    };
+  }
+
   // ============ Statistics ============
 
   async getRunStatistics(

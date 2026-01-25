@@ -547,4 +547,85 @@ describe('TestRunsService', () => {
       );
     });
   });
+
+  // ============ Progress Aggregation ============
+
+  describe('getProgress', () => {
+    it('should return progress with correct percentages', async () => {
+      testRunRepository.findOne.mockResolvedValue(mockTestRun);
+      mockQueryBuilder.getRawMany.mockResolvedValue([
+        { status: TestStatus.PASSED, count: '5' },
+        { status: TestStatus.FAILED, count: '2' },
+        { status: TestStatus.UNTESTED, count: '3' },
+      ]);
+
+      const result = await service.getProgress('proj-123', 'run-123');
+
+      expect(result.testRunId).toBe('run-123');
+      expect(result.total).toBe(10);
+      expect(result.executed).toBe(7);
+      expect(result.remaining).toBe(3);
+      expect(result.progressPercentage).toBe(70); // 7 / 10 * 100 = 70
+      expect(result.status).toBe(TestRunStatus.NOT_STARTED);
+    });
+
+    it('should return 0% progress when all tests are untested', async () => {
+      testRunRepository.findOne.mockResolvedValue(mockTestRun);
+      mockQueryBuilder.getRawMany.mockResolvedValue([
+        { status: TestStatus.UNTESTED, count: '10' },
+      ]);
+
+      const result = await service.getProgress('proj-123', 'run-123');
+
+      expect(result.total).toBe(10);
+      expect(result.executed).toBe(0);
+      expect(result.remaining).toBe(10);
+      expect(result.progressPercentage).toBe(0);
+    });
+
+    it('should return 100% progress when all tests are executed', async () => {
+      testRunRepository.findOne.mockResolvedValue(mockTestRun);
+      mockQueryBuilder.getRawMany.mockResolvedValue([
+        { status: TestStatus.PASSED, count: '8' },
+        { status: TestStatus.FAILED, count: '2' },
+      ]);
+
+      const result = await service.getProgress('proj-123', 'run-123');
+
+      expect(result.total).toBe(10);
+      expect(result.executed).toBe(10);
+      expect(result.remaining).toBe(0);
+      expect(result.progressPercentage).toBe(100);
+    });
+
+    it('should return 0% progress when no results exist', async () => {
+      testRunRepository.findOne.mockResolvedValue(mockTestRun);
+      mockQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await service.getProgress('proj-123', 'run-123');
+
+      expect(result.total).toBe(0);
+      expect(result.executed).toBe(0);
+      expect(result.remaining).toBe(0);
+      expect(result.progressPercentage).toBe(0);
+    });
+
+    it('should include test run status in response', async () => {
+      const inProgressRun = { ...mockTestRun, status: TestRunStatus.IN_PROGRESS };
+      testRunRepository.findOne.mockResolvedValue(inProgressRun);
+      mockQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await service.getProgress('proj-123', 'run-123');
+
+      expect(result.status).toBe(TestRunStatus.IN_PROGRESS);
+    });
+
+    it('should throw NotFoundException when test run not found', async () => {
+      testRunRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.getProgress('proj-123', 'non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });
