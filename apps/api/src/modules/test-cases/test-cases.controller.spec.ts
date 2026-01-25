@@ -6,6 +6,9 @@ import { TestCase, TestCaseTemplate, Priority } from './entities/test-case.entit
 import { TestCaseVersion } from './entities/test-case-version.entity';
 import { CreateTestCaseDto } from './dto/create-test-case.dto';
 import { UpdateTestCaseDto } from './dto/update-test-case.dto';
+import { BulkCreateTestCasesDto } from './dto/bulk-create-test-cases.dto';
+import { BulkUpdateTestCasesDto } from './dto/bulk-update-test-cases.dto';
+import { BulkDeleteTestCasesDto } from './dto/bulk-delete-test-cases.dto';
 import { User } from '../users/entities/user.entity';
 
 describe('TestCasesController', () => {
@@ -65,6 +68,9 @@ describe('TestCasesController', () => {
             update: jest.fn(),
             delete: jest.fn(),
             getHistory: jest.fn(),
+            bulkCreate: jest.fn(),
+            bulkUpdate: jest.fn(),
+            bulkDelete: jest.fn(),
           },
         },
       ],
@@ -288,6 +294,185 @@ describe('TestCasesController', () => {
       await expect(controller.getHistory('proj-123', 'non-existent')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('bulkCreate', () => {
+    const bulkCreateDto: BulkCreateTestCasesDto = {
+      testCases: [
+        { title: 'Test Case 1', templateType: TestCaseTemplate.STEPS, priority: Priority.HIGH },
+        { title: 'Test Case 2', templateType: TestCaseTemplate.TEXT, priority: Priority.MEDIUM },
+      ],
+    };
+
+    it('should bulk create test cases', async () => {
+      const createdTestCases = [
+        { ...mockTestCase, id: 'tc-1', title: 'Test Case 1' },
+        { ...mockTestCase, id: 'tc-2', title: 'Test Case 2' },
+      ];
+      service.bulkCreate.mockResolvedValue(createdTestCases);
+
+      const result = await controller.bulkCreate(
+        'proj-123',
+        bulkCreateDto,
+        mockUser as User,
+      );
+
+      expect(service.bulkCreate).toHaveBeenCalledWith(
+        'proj-123',
+        bulkCreateDto.testCases,
+        'user-123',
+      );
+      expect(result).toEqual(createdTestCases);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should bulk create test cases with undefined user', async () => {
+      const createdTestCases = [
+        { ...mockTestCase, id: 'tc-1', title: 'Test Case 1' },
+      ];
+      service.bulkCreate.mockResolvedValue(createdTestCases);
+
+      const singleItemDto: BulkCreateTestCasesDto = {
+        testCases: [bulkCreateDto.testCases[0]],
+      };
+
+      const result = await controller.bulkCreate(
+        'proj-123',
+        singleItemDto,
+        undefined as any,
+      );
+
+      expect(service.bulkCreate).toHaveBeenCalledWith(
+        'proj-123',
+        singleItemDto.testCases,
+        undefined,
+      );
+      expect(result).toEqual(createdTestCases);
+    });
+  });
+
+  describe('bulkUpdate', () => {
+    const bulkUpdateDto: BulkUpdateTestCasesDto = {
+      testCases: [
+        { id: 'tc-1', title: 'Updated Title 1' },
+        { id: 'tc-2', title: 'Updated Title 2' },
+      ],
+    };
+
+    it('should bulk update test cases', async () => {
+      const updateResult = {
+        updated: [
+          { ...mockTestCase, id: 'tc-1', title: 'Updated Title 1', version: 2 },
+          { ...mockTestCase, id: 'tc-2', title: 'Updated Title 2', version: 2 },
+        ],
+        notFound: [],
+      };
+      service.bulkUpdate.mockResolvedValue(updateResult);
+
+      const result = await controller.bulkUpdate(
+        'proj-123',
+        bulkUpdateDto,
+        mockUser as User,
+      );
+
+      expect(service.bulkUpdate).toHaveBeenCalledWith(
+        'proj-123',
+        bulkUpdateDto.testCases,
+        'user-123',
+      );
+      expect(result).toEqual(updateResult);
+      expect(result.updated).toHaveLength(2);
+      expect(result.notFound).toHaveLength(0);
+    });
+
+    it('should bulk update test cases with undefined user', async () => {
+      const updateResult = {
+        updated: [{ ...mockTestCase, id: 'tc-1', title: 'Updated Title 1', version: 2 }],
+        notFound: [],
+      };
+      service.bulkUpdate.mockResolvedValue(updateResult);
+
+      const singleItemDto: BulkUpdateTestCasesDto = {
+        testCases: [bulkUpdateDto.testCases[0]],
+      };
+
+      const result = await controller.bulkUpdate(
+        'proj-123',
+        singleItemDto,
+        undefined as any,
+      );
+
+      expect(service.bulkUpdate).toHaveBeenCalledWith(
+        'proj-123',
+        singleItemDto.testCases,
+        undefined,
+      );
+      expect(result).toEqual(updateResult);
+    });
+
+    it('should return not found ids when some test cases do not exist', async () => {
+      const updateResult = {
+        updated: [{ ...mockTestCase, id: 'tc-1', title: 'Updated Title 1', version: 2 }],
+        notFound: ['tc-2'],
+      };
+      service.bulkUpdate.mockResolvedValue(updateResult);
+
+      const result = await controller.bulkUpdate(
+        'proj-123',
+        bulkUpdateDto,
+        mockUser as User,
+      );
+
+      expect(result.updated).toHaveLength(1);
+      expect(result.notFound).toEqual(['tc-2']);
+    });
+  });
+
+  describe('bulkDelete', () => {
+    const bulkDeleteDto: BulkDeleteTestCasesDto = {
+      ids: ['tc-1', 'tc-2'],
+    };
+
+    it('should bulk delete test cases', async () => {
+      const deleteResult = {
+        deleted: ['tc-1', 'tc-2'],
+        notFound: [],
+      };
+      service.bulkDelete.mockResolvedValue(deleteResult);
+
+      const result = await controller.bulkDelete('proj-123', bulkDeleteDto);
+
+      expect(service.bulkDelete).toHaveBeenCalledWith('proj-123', bulkDeleteDto.ids);
+      expect(result).toEqual(deleteResult);
+      expect(result.deleted).toHaveLength(2);
+      expect(result.notFound).toHaveLength(0);
+    });
+
+    it('should return not found ids when some test cases do not exist', async () => {
+      const deleteResult = {
+        deleted: ['tc-1'],
+        notFound: ['tc-2'],
+      };
+      service.bulkDelete.mockResolvedValue(deleteResult);
+
+      const result = await controller.bulkDelete('proj-123', bulkDeleteDto);
+
+      expect(result.deleted).toEqual(['tc-1']);
+      expect(result.notFound).toEqual(['tc-2']);
+    });
+
+    it('should return all not found when no test cases exist', async () => {
+      const deleteResult = {
+        deleted: [],
+        notFound: ['tc-1', 'tc-2'],
+      };
+      service.bulkDelete.mockResolvedValue(deleteResult);
+
+      const result = await controller.bulkDelete('proj-123', bulkDeleteDto);
+
+      expect(result.deleted).toHaveLength(0);
+      expect(result.notFound).toEqual(['tc-1', 'tc-2']);
     });
   });
 });
