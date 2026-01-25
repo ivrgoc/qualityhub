@@ -5,12 +5,26 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+  Index,
 } from 'typeorm';
+import { Organization } from '../../organizations/entities/organization.entity';
+import { ProjectMember } from './project-member.entity';
 
 @Entity('projects')
+@Index(['organizationId'])
 export class Project {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ name: 'organization_id', type: 'uuid' })
+  organizationId: string;
+
+  @ManyToOne(() => Organization)
+  @JoinColumn({ name: 'organization_id' })
+  organization: Organization;
 
   @Column()
   name: string;
@@ -29,4 +43,7 @@ export class Project {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
+
+  @OneToMany(() => ProjectMember, (member) => member.project)
+  members: ProjectMember[];
 }
