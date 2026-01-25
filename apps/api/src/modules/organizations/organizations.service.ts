@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Organization } from './entities/organization.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
@@ -14,6 +15,8 @@ export class OrganizationsService {
   constructor(
     @InjectRepository(Organization)
     private readonly organizationRepository: Repository<Organization>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async create(createOrganizationDto: CreateOrganizationDto): Promise<Organization> {
@@ -87,5 +90,16 @@ export class OrganizationsService {
       throw new NotFoundException(`Organization with ID ${id} not found`);
     }
     await this.organizationRepository.delete(id);
+  }
+
+  async getMembers(organizationId: string): Promise<User[]> {
+    const organization = await this.findById(organizationId);
+    if (!organization) {
+      throw new NotFoundException(`Organization with ID ${organizationId} not found`);
+    }
+    return this.userRepository.find({
+      where: { organizationId },
+      order: { createdAt: 'ASC' },
+    });
   }
 }
