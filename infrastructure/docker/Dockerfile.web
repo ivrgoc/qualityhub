@@ -1,0 +1,46 @@
+# QualityHub Web Frontend Dockerfile
+# Multi-stage build for React/Vite application
+
+# Stage 1: Build
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.28.1 --activate
+
+# Copy workspace configuration files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source files
+COPY apps/web ./apps/web
+COPY packages/shared-types ./packages/shared-types
+COPY packages/eslint-config ./packages/eslint-config
+
+# Build the application
+RUN pnpm --filter @qualityhub/web build
+
+# Stage 2: Production
+FROM nginx:alpine AS production
+
+# Copy custom nginx configuration
+COPY infrastructure/docker/nginx.conf /etc/nginx/nginx.conf
+
+# Copy built assets from builder stage
+COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

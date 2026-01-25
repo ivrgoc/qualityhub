@@ -1,0 +1,75 @@
+# Dependencies
+node_modules
+**/node_modules
+**/.pnpm-store
+
+# Build outputs
+dist
+**/dist
+build
+**/build
+.next
+**/.next
+
+# Python
+__pycache__
+**/__pycache__
+*.pyc
+**/*.pyc
+.venv
+**/.venv
+*.egg-info
+**/*.egg-info
+
+# IDE and editors
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Testing
+coverage
+**/coverage
+.nyc_output
+**/.nyc_output
+.pytest_cache
+**/.pytest_cache
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Logs
+*.log
+logs
+**/logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Infrastructure (avoid copying infrastructure into builds)
+infrastructure/kubernetes
+infrastructure/terraform
