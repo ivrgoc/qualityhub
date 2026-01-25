@@ -70,3 +70,8 @@ export type {
 } from './api';
 
 export { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, isApiError, isValidationError } from './api';
+
+// API Response Types (consolidated)
+export type { ApiResponse, ErrorResponse } from './api-response';
+export type { PaginatedResponse as PaginatedApiResponse } from './api-response';
+export { isErrorResponse, isApiResponse, isPaginatedResponse } from './api-response';
