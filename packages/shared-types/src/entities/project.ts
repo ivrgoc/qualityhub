@@ -1,0 +1,17 @@
+export interface Project {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface CreateProjectDto {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateProjectDto {
+  name?: string;
+  description?: string;
+}
