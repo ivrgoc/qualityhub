@@ -136,6 +136,30 @@ describe('UsersService', () => {
     });
   });
 
+  describe('findByIdOrFail', () => {
+    it('should find a user by id', async () => {
+      userRepository.findOne.mockResolvedValue(mockUser);
+
+      const result = await service.findByIdOrFail('user-123');
+
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+      });
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should throw NotFoundException when user not found', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findByIdOrFail('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.findByIdOrFail('non-existent')).rejects.toThrow(
+        'User with ID non-existent not found',
+      );
+    });
+  });
+
   describe('findAll', () => {
     it('should return all users', async () => {
       const users = [mockUser];

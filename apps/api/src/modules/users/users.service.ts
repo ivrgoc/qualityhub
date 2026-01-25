@@ -28,6 +28,14 @@ export class UsersService {
     return this.userRepository.findOne({ where: { id } });
   }
 
+  async findByIdOrFail(id: string): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
+  }
+
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
   }
