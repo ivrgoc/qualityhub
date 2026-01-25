@@ -422,4 +422,253 @@ describe('TestCasesService', () => {
       ).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('bulkCreate', () => {
+    const createTestCaseDtos: CreateTestCaseDto[] = [
+      { title: 'Test Case 1', priority: Priority.HIGH },
+      { title: 'Test Case 2', priority: Priority.MEDIUM },
+    ];
+
+    it('should create multiple test cases', async () => {
+      const createdTestCases = createTestCaseDtos.map((dto, index) => ({
+        ...mockTestCase,
+        id: `tc-${index + 1}`,
+        ...dto,
+        version: 1,
+      }));
+      testCaseRepository.create
+        .mockReturnValueOnce(createdTestCases[0])
+        .mockReturnValueOnce(createdTestCases[1]);
+      testCaseRepository.save.mockResolvedValue(createdTestCases);
+      testCaseVersionRepository.create.mockReturnValue(mockTestCaseVersion);
+      testCaseVersionRepository.save.mockResolvedValue([mockTestCaseVersion]);
+
+      const result = await service.bulkCreate(
+        'proj-123',
+        createTestCaseDtos,
+        'user-123',
+      );
+
+      expect(testCaseRepository.create).toHaveBeenCalledTimes(2);
+      expect(testCaseRepository.save).toHaveBeenCalledWith(createdTestCases);
+      expect(testCaseVersionRepository.save).toHaveBeenCalled();
+      expect(result).toHaveLength(2);
+    });
+
+    it('should create version snapshots for all created test cases', async () => {
+      const createdTestCases = createTestCaseDtos.map((dto, index) => ({
+        ...mockTestCase,
+        id: `tc-${index + 1}`,
+        ...dto,
+        version: 1,
+      }));
+      testCaseRepository.create
+        .mockReturnValueOnce(createdTestCases[0])
+        .mockReturnValueOnce(createdTestCases[1]);
+      testCaseRepository.save.mockResolvedValue(createdTestCases);
+      testCaseVersionRepository.create.mockReturnValue(mockTestCaseVersion);
+      testCaseVersionRepository.save.mockResolvedValue([mockTestCaseVersion]);
+
+      await service.bulkCreate('proj-123', createTestCaseDtos, 'user-123');
+
+      expect(testCaseVersionRepository.create).toHaveBeenCalledTimes(2);
+      expect(testCaseVersionRepository.save).toHaveBeenCalled();
+    });
+
+    it('should create test cases without userId', async () => {
+      const createdTestCases = createTestCaseDtos.map((dto, index) => ({
+        ...mockTestCase,
+        id: `tc-${index + 1}`,
+        ...dto,
+        version: 1,
+        createdBy: undefined,
+      }));
+      testCaseRepository.create
+        .mockReturnValueOnce(createdTestCases[0])
+        .mockReturnValueOnce(createdTestCases[1]);
+      testCaseRepository.save.mockResolvedValue(createdTestCases);
+      testCaseVersionRepository.create.mockReturnValue(mockTestCaseVersion);
+      testCaseVersionRepository.save.mockResolvedValue([mockTestCaseVersion]);
+
+      const result = await service.bulkCreate('proj-123', createTestCaseDtos);
+
+      expect(testCaseRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdBy: undefined,
+        }),
+      );
+      expect(result).toHaveLength(2);
+    });
+  });
+
+  describe('bulkUpdate', () => {
+    const updateItems = [
+      { id: 'tc-1', title: 'Updated Title 1' },
+      { id: 'tc-2', title: 'Updated Title 2' },
+    ];
+
+    it('should update multiple test cases', async () => {
+      const existingTestCases = [
+        { ...mockTestCase, id: 'tc-1', version: 1 },
+        { ...mockTestCase, id: 'tc-2', version: 1 },
+      ];
+      const updatedTestCases = existingTestCases.map((tc, i) => ({
+        ...tc,
+        title: updateItems[i].title,
+        version: 2,
+      }));
+      testCaseRepository.find.mockResolvedValue(
+        existingTestCases.map((tc) => ({ ...tc })),
+      );
+      testCaseRepository.save.mockResolvedValue(updatedTestCases);
+      testCaseVersionRepository.create.mockReturnValue(mockTestCaseVersion);
+      testCaseVersionRepository.save.mockResolvedValue([mockTestCaseVersion]);
+
+      const result = await service.bulkUpdate(
+        'proj-123',
+        updateItems,
+        'user-123',
+      );
+
+      expect(testCaseRepository.find).toHaveBeenCalled();
+      expect(testCaseRepository.save).toHaveBeenCalled();
+      expect(result.updated).toHaveLength(2);
+      expect(result.notFound).toHaveLength(0);
+    });
+
+    it('should increment version for all updated test cases', async () => {
+      const existingTestCases = [
+        { ...mockTestCase, id: 'tc-1', version: 3 },
+        { ...mockTestCase, id: 'tc-2', version: 5 },
+      ];
+      testCaseRepository.find.mockResolvedValue(
+        existingTestCases.map((tc) => ({ ...tc })),
+      );
+      testCaseRepository.save.mockImplementation((testCases) =>
+        Promise.resolve(testCases),
+      );
+      testCaseVersionRepository.create.mockReturnValue(mockTestCaseVersion);
+      testCaseVersionRepository.save.mockResolvedValue([mockTestCaseVersion]);
+
+      const result = await service.bulkUpdate(
+        'proj-123',
+        updateItems,
+        'user-123',
+      );
+
+      expect(result.updated[0].version).toBe(4);
+      expect(result.updated[1].version).toBe(6);
+    });
+
+    it('should return notFound ids for non-existent test cases', async () => {
+      const existingTestCases = [{ ...mockTestCase, id: 'tc-1', version: 1 }];
+      testCaseRepository.find.mockResolvedValue(
+        existingTestCases.map((tc) => ({ ...tc })),
+      );
+      testCaseRepository.save.mockImplementation((testCases) =>
+        Promise.resolve(testCases),
+      );
+      testCaseVersionRepository.create.mockReturnValue(mockTestCaseVersion);
+      testCaseVersionRepository.save.mockResolvedValue([mockTestCaseVersion]);
+
+      const result = await service.bulkUpdate(
+        'proj-123',
+        updateItems,
+        'user-123',
+      );
+
+      expect(result.updated).toHaveLength(1);
+      expect(result.notFound).toEqual(['tc-2']);
+    });
+
+    it('should return empty updated array when no test cases found', async () => {
+      testCaseRepository.find.mockResolvedValue([]);
+
+      const result = await service.bulkUpdate(
+        'proj-123',
+        updateItems,
+        'user-123',
+      );
+
+      expect(result.updated).toHaveLength(0);
+      expect(result.notFound).toEqual(['tc-1', 'tc-2']);
+      expect(testCaseRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should create version snapshots for all updated test cases', async () => {
+      const existingTestCases = [
+        { ...mockTestCase, id: 'tc-1', version: 1 },
+        { ...mockTestCase, id: 'tc-2', version: 1 },
+      ];
+      testCaseRepository.find.mockResolvedValue(
+        existingTestCases.map((tc) => ({ ...tc })),
+      );
+      testCaseRepository.save.mockImplementation((testCases) =>
+        Promise.resolve(testCases),
+      );
+      testCaseVersionRepository.create.mockReturnValue(mockTestCaseVersion);
+      testCaseVersionRepository.save.mockResolvedValue([mockTestCaseVersion]);
+
+      await service.bulkUpdate('proj-123', updateItems, 'user-123');
+
+      expect(testCaseVersionRepository.create).toHaveBeenCalledTimes(2);
+      expect(testCaseVersionRepository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('bulkDelete', () => {
+    const idsToDelete = ['tc-1', 'tc-2'];
+
+    it('should soft delete multiple test cases', async () => {
+      const existingTestCases = [
+        { ...mockTestCase, id: 'tc-1' },
+        { ...mockTestCase, id: 'tc-2' },
+      ];
+      testCaseRepository.find.mockResolvedValue(existingTestCases);
+      testCaseRepository.softDelete.mockResolvedValue({ affected: 2 } as any);
+
+      const result = await service.bulkDelete('proj-123', idsToDelete);
+
+      expect(testCaseRepository.find).toHaveBeenCalled();
+      expect(testCaseRepository.softDelete).toHaveBeenCalledWith([
+        'tc-1',
+        'tc-2',
+      ]);
+      expect(result.deleted).toEqual(['tc-1', 'tc-2']);
+      expect(result.notFound).toHaveLength(0);
+    });
+
+    it('should return notFound ids for non-existent test cases', async () => {
+      const existingTestCases = [{ ...mockTestCase, id: 'tc-1' }];
+      testCaseRepository.find.mockResolvedValue(existingTestCases);
+      testCaseRepository.softDelete.mockResolvedValue({ affected: 1 } as any);
+
+      const result = await service.bulkDelete('proj-123', idsToDelete);
+
+      expect(result.deleted).toEqual(['tc-1']);
+      expect(result.notFound).toEqual(['tc-2']);
+    });
+
+    it('should return empty deleted array when no test cases found', async () => {
+      testCaseRepository.find.mockResolvedValue([]);
+
+      const result = await service.bulkDelete('proj-123', idsToDelete);
+
+      expect(result.deleted).toHaveLength(0);
+      expect(result.notFound).toEqual(['tc-1', 'tc-2']);
+      expect(testCaseRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('should only delete test cases belonging to the project', async () => {
+      const existingTestCases = [{ ...mockTestCase, id: 'tc-1' }];
+      testCaseRepository.find.mockResolvedValue(existingTestCases);
+      testCaseRepository.softDelete.mockResolvedValue({ affected: 1 } as any);
+
+      await service.bulkDelete('proj-123', idsToDelete);
+
+      expect(testCaseRepository.find).toHaveBeenCalledWith({
+        where: { id: expect.anything(), projectId: 'proj-123' },
+      });
+    });
+  });
 });

@@ -23,6 +23,9 @@ import {
 import { TestCasesService } from './test-cases.service';
 import { CreateTestCaseDto } from './dto/create-test-case.dto';
 import { UpdateTestCaseDto } from './dto/update-test-case.dto';
+import { BulkCreateTestCasesDto } from './dto/bulk-create-test-cases.dto';
+import { BulkUpdateTestCasesDto } from './dto/bulk-update-test-cases.dto';
+import { BulkDeleteTestCasesDto } from './dto/bulk-delete-test-cases.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
@@ -102,5 +105,45 @@ export class TestCasesController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.testCasesService.getHistory(projectId, id);
+  }
+
+  @Post('bulk')
+  @ApiOperation({ summary: 'Bulk create test cases' })
+  @ApiCreatedResponse({ description: 'Test cases created successfully' })
+  async bulkCreate(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() bulkCreateDto: BulkCreateTestCasesDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.testCasesService.bulkCreate(
+      projectId,
+      bulkCreateDto.testCases,
+      user?.id,
+    );
+  }
+
+  @Patch('bulk')
+  @ApiOperation({ summary: 'Bulk update test cases' })
+  @ApiOkResponse({ description: 'Test cases updated successfully' })
+  async bulkUpdate(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() bulkUpdateDto: BulkUpdateTestCasesDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.testCasesService.bulkUpdate(
+      projectId,
+      bulkUpdateDto.testCases,
+      user?.id,
+    );
+  }
+
+  @Delete('bulk')
+  @ApiOperation({ summary: 'Bulk delete test cases' })
+  @ApiOkResponse({ description: 'Test cases deleted successfully' })
+  async bulkDelete(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() bulkDeleteDto: BulkDeleteTestCasesDto,
+  ) {
+    return this.testCasesService.bulkDelete(projectId, bulkDeleteDto.ids);
   }
 }

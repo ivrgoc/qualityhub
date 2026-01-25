@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { TestCase } from './entities/test-case.entity';
 import { TestCaseVersion } from './entities/test-case-version.entity';
 import { CreateTestCaseDto } from './dto/create-test-case.dto';
 import { UpdateTestCaseDto } from './dto/update-test-case.dto';
+import { BulkUpdateTestCaseItem } from './dto/bulk-update-test-cases.dto';
 
 @Injectable()
 export class TestCasesService {
@@ -89,11 +90,102 @@ export class TestCasesService {
     });
   }
 
-  private async createVersionSnapshot(
-    testCase: TestCase,
+  async bulkCreate(
+    projectId: string,
+    createTestCaseDtos: CreateTestCaseDto[],
     userId?: string,
-  ): Promise<TestCaseVersion> {
-    const versionData: Record<string, unknown> = {
+  ): Promise<TestCase[]> {
+    const testCases = createTestCaseDtos.map((dto) =>
+      this.testCaseRepository.create({
+        ...dto,
+        projectId,
+        createdBy: userId,
+        version: 1,
+      }),
+    );
+
+    const savedTestCases = await this.testCaseRepository.save(testCases);
+
+    const versionSnapshots = savedTestCases.map((testCase) =>
+      this.testCaseVersionRepository.create({
+        testCaseId: testCase.id,
+        version: testCase.version,
+        data: this.extractVersionData(testCase),
+        changedBy: userId,
+      }),
+    );
+
+    await this.testCaseVersionRepository.save(versionSnapshots);
+
+    return savedTestCases;
+  }
+
+  async bulkUpdate(
+    projectId: string,
+    updates: BulkUpdateTestCaseItem[],
+    userId?: string,
+  ): Promise<{ updated: TestCase[]; notFound: string[] }> {
+    const ids = updates.map((u) => u.id);
+
+    const existingTestCases = await this.testCaseRepository.find({
+      where: { id: In(ids), projectId },
+    });
+
+    const existingIds = new Set(existingTestCases.map((tc) => tc.id));
+    const notFound = ids.filter((id) => !existingIds.has(id));
+
+    const updatedTestCases: TestCase[] = [];
+    for (const update of updates) {
+      const testCase = existingTestCases.find((tc) => tc.id === update.id);
+      if (!testCase) continue;
+
+      const { id, ...updateData } = update;
+      void id; // id is used for finding the test case, not for updating
+      Object.assign(testCase, updateData);
+      testCase.version += 1;
+      updatedTestCases.push(testCase);
+    }
+
+    if (updatedTestCases.length === 0) {
+      return { updated: [], notFound };
+    }
+
+    const savedTestCases = await this.testCaseRepository.save(updatedTestCases);
+
+    const versionSnapshots = savedTestCases.map((testCase) =>
+      this.testCaseVersionRepository.create({
+        testCaseId: testCase.id,
+        version: testCase.version,
+        data: this.extractVersionData(testCase),
+        changedBy: userId,
+      }),
+    );
+
+    await this.testCaseVersionRepository.save(versionSnapshots);
+
+    return { updated: savedTestCases, notFound };
+  }
+
+  async bulkDelete(
+    projectId: string,
+    ids: string[],
+  ): Promise<{ deleted: string[]; notFound: string[] }> {
+    const existingTestCases = await this.testCaseRepository.find({
+      where: { id: In(ids), projectId },
+    });
+
+    const existingIds = existingTestCases.map((tc) => tc.id);
+    const notFound = ids.filter((id) => !existingIds.includes(id));
+
+    if (existingIds.length > 0) {
+      await this.testCaseRepository.softDelete(existingIds);
+    }
+
+    return { deleted: existingIds, notFound };
+  }
+
+  private extractVersionData(testCase: TestCase): Record<string, unknown> {
+    return {
       title: testCase.title,
       templateType: testCase.templateType,
       preconditions: testCase.preconditions,
@@ -104,11 +196,16 @@ export class TestCasesService {
       customFields: testCase.customFields,
       sectionId: testCase.sectionId,
     };
+  }
 
+  private async createVersionSnapshot(
+    testCase: TestCase,
+    userId?: string,
+  ): Promise<TestCaseVersion> {
     const version = this.testCaseVersionRepository.create({
       testCaseId: testCase.id,
       version: testCase.version,
-      data: versionData,
+      data: this.extractVersionData(testCase),
       changedBy: userId,
     });
 
