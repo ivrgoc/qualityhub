@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, IsNull, LessThan, UpdateResult, DeleteResult } from 'typeorm';
+import { NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User, UserRole } from './entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -44,6 +46,7 @@ describe('UsersService', () => {
             save: jest.fn(),
             findOne: jest.fn(),
             find: jest.fn(),
+            delete: jest.fn(),
           },
         },
         {
@@ -150,6 +153,86 @@ describe('UsersService', () => {
       const result = await service.findAll();
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('update', () => {
+    it('should update an existing user', async () => {
+      const updateUserDto: UpdateUserDto = {
+        name: 'Updated Name',
+        role: UserRole.LEAD,
+      };
+      const existingUser = { ...mockUser };
+      const updatedUser = { ...mockUser, ...updateUserDto };
+
+      userRepository.findOne.mockResolvedValue(existingUser);
+      userRepository.save.mockResolvedValue(updatedUser);
+
+      const result = await service.update('user-123', updateUserDto);
+
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+      });
+      expect(userRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'user-123',
+          name: 'Updated Name',
+          role: UserRole.LEAD,
+        }),
+      );
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should update only provided fields', async () => {
+      const updateUserDto: UpdateUserDto = {
+        name: 'New Name Only',
+      };
+      const existingUser = { ...mockUser };
+      const updatedUser = { ...mockUser, name: 'New Name Only' };
+
+      userRepository.findOne.mockResolvedValue(existingUser);
+      userRepository.save.mockResolvedValue(updatedUser);
+
+      const result = await service.update('user-123', updateUserDto);
+
+      expect(userRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'user-123',
+          name: 'New Name Only',
+          role: UserRole.TESTER,
+        }),
+      );
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should throw NotFoundException when user not found', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.update('non-existent', { name: 'Test' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete an existing user', async () => {
+      userRepository.findOne.mockResolvedValue(mockUser);
+      userRepository.delete.mockResolvedValue({ affected: 1 } as DeleteResult);
+
+      await service.delete('user-123');
+
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+      });
+      expect(userRepository.delete).toHaveBeenCalledWith('user-123');
+    });
+
+    it('should throw NotFoundException when user not found', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.delete('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
