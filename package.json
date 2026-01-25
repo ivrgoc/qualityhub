@@ -14,7 +14,8 @@
     "db:migrate:generate": "pnpm --filter @qualityhub/api run db:migrate:generate",
     "db:seed": "pnpm --filter @qualityhub/api run db:seed",
     "clean": "turbo run clean && rm -rf node_modules",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "validate:turbo": "node scripts/validate-turbo-config.js"
   },
   "keywords": [
     "test-management",
