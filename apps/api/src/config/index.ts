@@ -1,2 +1,16 @@
 export { default as databaseConfig } from './database.config';
 export { default as jwtConfig } from './jwt.config';
+export {
+  databaseConfig as typedDatabaseConfig,
+  jwtConfig as typedJwtConfig,
+  redisConfig,
+  appConfig,
+  default as configuration,
+} from './configuration';
+export type {
+  DatabaseConfig,
+  JwtConfig,
+  RedisConfig,
+  AppConfig,
+  Configuration,
+} from './configuration';
