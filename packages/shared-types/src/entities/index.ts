@@ -1,6 +1,15 @@
 export type { User, CreateUserDto, UpdateUserDto } from './user';
 export type { Organization, CreateOrganizationDto, UpdateOrganizationDto } from './organization';
-export type { Project, CreateProjectDto, UpdateProjectDto } from './project';
+export type {
+  Project,
+  ProjectSettings,
+  ProjectMember,
+  CreateProjectDto,
+  UpdateProjectDto,
+  AddProjectMemberDto,
+  UpdateProjectMemberDto,
+} from './project';
+export { ProjectRole, PROJECT_ROLE_VALUES, isProjectRole } from './project';
 export type { TestStep, CreateTestStepDto } from './test-step';
 export type { TestCase, CreateTestCaseDto, UpdateTestCaseDto } from './test-case';
 export type { TestSuite, CreateTestSuiteDto, UpdateTestSuiteDto } from './test-suite';

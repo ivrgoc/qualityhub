@@ -3,11 +3,16 @@ import type {
   User,
   Organization,
   Project,
+  ProjectSettings,
+  ProjectMember,
+  CreateProjectDto,
+  AddProjectMemberDto,
   TestCase,
   TestRun,
   TestResult,
   CreateTestCaseDto,
 } from '../entities';
+import { ProjectRole, PROJECT_ROLE_VALUES, isProjectRole } from '../entities';
 import { UserRole, TestStatus, Priority, TestCaseTemplate } from '../enums';
 
 describe('Entity types', () => {
@@ -52,6 +57,129 @@ describe('Entity types', () => {
       };
 
       expect(project.name).toBe('Test Project');
+    });
+
+    it('should accept project with optional settings', () => {
+      const settings: ProjectSettings = {
+        defaultPriority: 'medium',
+        allowedStatuses: ['passed', 'failed', 'blocked'],
+        customFields: { severity: 'string' },
+      };
+
+      const project: Project = {
+        id: 'proj-1',
+        orgId: 'org-1',
+        name: 'Test Project',
+        description: 'A test project',
+        settings,
+        createdAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      expect(project.settings?.defaultPriority).toBe('medium');
+      expect(project.settings?.allowedStatuses).toHaveLength(3);
+    });
+
+    it('should accept project with deletedAt for soft delete', () => {
+      const project: Project = {
+        id: 'proj-1',
+        orgId: 'org-1',
+        name: 'Deleted Project',
+        description: 'A deleted project',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        deletedAt: '2024-06-01T00:00:00.000Z',
+      };
+
+      expect(project.deletedAt).toBeDefined();
+    });
+  });
+
+  describe('ProjectRole', () => {
+    it('should have all expected role values', () => {
+      expect(ProjectRole.VIEWER).toBe('viewer');
+      expect(ProjectRole.TESTER).toBe('tester');
+      expect(ProjectRole.LEAD).toBe('lead');
+      expect(ProjectRole.ADMIN).toBe('admin');
+    });
+
+    it('should export PROJECT_ROLE_VALUES array', () => {
+      expect(PROJECT_ROLE_VALUES).toContain('viewer');
+      expect(PROJECT_ROLE_VALUES).toContain('tester');
+      expect(PROJECT_ROLE_VALUES).toContain('lead');
+      expect(PROJECT_ROLE_VALUES).toContain('admin');
+      expect(PROJECT_ROLE_VALUES).toHaveLength(4);
+    });
+
+    it('should validate project roles with isProjectRole', () => {
+      expect(isProjectRole('viewer')).toBe(true);
+      expect(isProjectRole('tester')).toBe(true);
+      expect(isProjectRole('lead')).toBe(true);
+      expect(isProjectRole('admin')).toBe(true);
+      expect(isProjectRole('invalid')).toBe(false);
+      expect(isProjectRole(123)).toBe(false);
+      expect(isProjectRole(null)).toBe(false);
+    });
+  });
+
+  describe('ProjectMember', () => {
+    it('should accept valid project member object', () => {
+      const member: ProjectMember = {
+        id: 'member-1',
+        projectId: 'proj-1',
+        userId: 'user-1',
+        role: ProjectRole.TESTER,
+        createdAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      expect(member.role).toBe(ProjectRole.TESTER);
+      expect(member.projectId).toBe('proj-1');
+      expect(member.userId).toBe('user-1');
+    });
+
+    it('should accept project member with admin role', () => {
+      const member: ProjectMember = {
+        id: 'member-2',
+        projectId: 'proj-1',
+        userId: 'user-2',
+        role: ProjectRole.ADMIN,
+        createdAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      expect(member.role).toBe(ProjectRole.ADMIN);
+    });
+  });
+
+  describe('CreateProjectDto', () => {
+    it('should accept minimal create project DTO', () => {
+      const dto: CreateProjectDto = {
+        name: 'New Project',
+      };
+
+      expect(dto.name).toBe('New Project');
+    });
+
+    it('should accept full create project DTO with settings', () => {
+      const dto: CreateProjectDto = {
+        name: 'New Project',
+        description: 'A new project',
+        settings: {
+          defaultPriority: 'high',
+          allowedStatuses: ['passed', 'failed'],
+        },
+      };
+
+      expect(dto.settings?.defaultPriority).toBe('high');
+    });
+  });
+
+  describe('AddProjectMemberDto', () => {
+    it('should accept valid add member DTO', () => {
+      const dto: AddProjectMemberDto = {
+        userId: 'user-1',
+        role: ProjectRole.LEAD,
+      };
+
+      expect(dto.userId).toBe('user-1');
+      expect(dto.role).toBe(ProjectRole.LEAD);
     });
   });
 
