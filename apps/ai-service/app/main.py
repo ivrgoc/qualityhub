@@ -46,7 +46,7 @@ app = create_app()
 
 
 @app.get("/")
-async def root() -> dict:
+async def root() -> dict[str, str]:
     """Root endpoint providing basic service information.
 
     Returns:
