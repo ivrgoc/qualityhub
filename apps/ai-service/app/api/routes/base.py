@@ -100,14 +100,20 @@ async def generate_bdd(
         HTTPException: If BDD generation fails
     """
     try:
-        generator = BDDGenerator(
-            api_key=settings.openai_api_key
+        api_key = (
+            settings.openai_api_key
             if settings.default_ai_provider == "openai"
-            else settings.anthropic_api_key,
+            else settings.anthropic_api_key
+        )
+        use_ai = bool(api_key)
+
+        generator = BDDGenerator(
+            api_key=api_key,
             provider=settings.default_ai_provider,
+            use_ai=use_ai,
         )
 
-        return await generator.generate(
+        return await generator.generate_scenarios(
             feature_description=request.feature_description,
             context=request.context,
             max_scenarios=request.max_scenarios,

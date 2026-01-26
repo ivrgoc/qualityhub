@@ -3,7 +3,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import router
+from app.api.routes import router as api_router
+from app.api.routes.generate import router as generate_router
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -37,7 +38,8 @@ def create_app() -> FastAPI:
     )
 
     # Include API routes
-    app.include_router(router, prefix=settings.api_prefix + "/ai")
+    app.include_router(api_router, prefix=settings.api_prefix + "/ai")
+    app.include_router(generate_router, prefix=settings.api_prefix + "/ai")
 
     return app
 
