@@ -20,4 +20,5 @@ export {
   type SelectTriggerProps,
 } from './Select';
 export { SimpleBarChart, type ChartDataPoint } from './SimpleBarChart';
+export { Switch, type SwitchProps } from './Switch';
 export { Textarea, type TextareaProps } from './Textarea';
