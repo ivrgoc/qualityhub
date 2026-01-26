@@ -11,10 +11,8 @@ import { RequirementCoverage } from '../requirements/entities/requirement-covera
 describe('ReportsService', () => {
   let service: ReportsService;
   let testRunRepository: jest.Mocked<Repository<TestRun>>;
-  let testResultRepository: jest.Mocked<Repository<TestResult>>;
   let testCaseRepository: jest.Mocked<Repository<TestCase>>;
   let requirementRepository: jest.Mocked<Repository<Requirement>>;
-  let coverageRepository: jest.Mocked<Repository<RequirementCoverage>>;
 
   const mockTestRunQueryBuilder = {
     select: jest.fn().mockReturnThis(),
@@ -55,7 +53,7 @@ describe('ReportsService', () => {
         {
           provide: getRepositoryToken(TestRun),
           useValue: {
-            find: jest.fn(),
+            count: jest.fn(),
             createQueryBuilder: jest.fn().mockReturnValue(mockTestRunQueryBuilder),
           },
         },
@@ -88,10 +86,8 @@ describe('ReportsService', () => {
 
     service = module.get<ReportsService>(ReportsService);
     testRunRepository = module.get(getRepositoryToken(TestRun));
-    testResultRepository = module.get(getRepositoryToken(TestResult));
     testCaseRepository = module.get(getRepositoryToken(TestCase));
     requirementRepository = module.get(getRepositoryToken(Requirement));
-    coverageRepository = module.get(getRepositoryToken(RequirementCoverage));
   });
 
   afterEach(() => {
@@ -109,8 +105,8 @@ describe('ReportsService', () => {
       // Setup test case count
       testCaseRepository.count.mockResolvedValue(100);
 
-      // Setup test run find
-      testRunRepository.find.mockResolvedValue([{ id: 'run-1' }, { id: 'run-2' }] as TestRun[]);
+      // Setup test run count
+      testRunRepository.count.mockResolvedValue(2);
 
       // Setup test result aggregation
       mockTestResultQueryBuilder.getRawMany.mockResolvedValue([
@@ -161,7 +157,7 @@ describe('ReportsService', () => {
 
     it('should return zeros when no test runs exist', async () => {
       testCaseRepository.count.mockResolvedValue(50);
-      testRunRepository.find.mockResolvedValue([]);
+      testRunRepository.count.mockResolvedValue(0);
       mockTestRunQueryBuilder.getRawMany.mockResolvedValue([]);
       requirementRepository.find.mockResolvedValue([]);
 
@@ -177,7 +173,7 @@ describe('ReportsService', () => {
 
     it('should handle all test statuses', async () => {
       testCaseRepository.count.mockResolvedValue(100);
-      testRunRepository.find.mockResolvedValue([{ id: 'run-1' }] as TestRun[]);
+      testRunRepository.count.mockResolvedValue(1);
       mockTestResultQueryBuilder.getRawMany.mockResolvedValue([
         { status: TestStatus.PASSED, count: '30' },
         { status: TestStatus.FAILED, count: '10' },
@@ -202,7 +198,7 @@ describe('ReportsService', () => {
 
     it('should handle all test run statuses', async () => {
       testCaseRepository.count.mockResolvedValue(0);
-      testRunRepository.find.mockResolvedValue([]);
+      testRunRepository.count.mockResolvedValue(0);
       mockTestResultQueryBuilder.getRawMany.mockResolvedValue([]);
       mockTestRunQueryBuilder.getRawMany.mockResolvedValue([
         { status: TestRunStatus.NOT_STARTED, count: '2' },
@@ -223,7 +219,7 @@ describe('ReportsService', () => {
 
     it('should calculate 100% pass rate when all executed tests pass', async () => {
       testCaseRepository.count.mockResolvedValue(50);
-      testRunRepository.find.mockResolvedValue([{ id: 'run-1' }] as TestRun[]);
+      testRunRepository.count.mockResolvedValue(1);
       mockTestResultQueryBuilder.getRawMany.mockResolvedValue([
         { status: TestStatus.PASSED, count: '40' },
         { status: TestStatus.UNTESTED, count: '10' },
@@ -239,7 +235,7 @@ describe('ReportsService', () => {
 
     it('should calculate 0% pass rate when no tests pass', async () => {
       testCaseRepository.count.mockResolvedValue(50);
-      testRunRepository.find.mockResolvedValue([{ id: 'run-1' }] as TestRun[]);
+      testRunRepository.count.mockResolvedValue(1);
       mockTestResultQueryBuilder.getRawMany.mockResolvedValue([
         { status: TestStatus.FAILED, count: '30' },
         { status: TestStatus.UNTESTED, count: '20' },

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { TestRun, TestRunStatus } from '../test-runs/entities/test-run.entity';
 import { TestResult, TestStatus } from '../test-runs/entities/test-result.entity';
 import { TestCase } from '../test-cases/entities/test-case.entity';
@@ -51,12 +51,11 @@ export class ReportsService {
       where: { projectId },
     });
 
-    const testRunIds = await this.testRunRepository.find({
+    const testRunCount = await this.testRunRepository.count({
       where: { projectId },
-      select: ['id'],
     });
 
-    if (testRunIds.length === 0) {
+    if (testRunCount === 0) {
       return {
         totalTestCases,
         totalTestResults: 0,
@@ -70,8 +69,6 @@ export class ReportsService {
         executionProgress: 0,
       };
     }
-
-    const runIds = testRunIds.map((r) => r.id);
 
     const results = await this.testResultRepository
       .createQueryBuilder('result')
