@@ -76,4 +76,13 @@ export {
 } from './Select';
 export { SimpleBarChart, type ChartDataPoint } from './SimpleBarChart';
 export { Switch, type SwitchProps } from './Switch';
+export {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  type TabsListProps,
+  type TabsTriggerProps,
+  type TabsContentProps,
+} from './Tabs';
 export { Textarea, type TextareaProps } from './Textarea';
