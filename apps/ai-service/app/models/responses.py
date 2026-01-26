@@ -64,6 +64,10 @@ class BDDScenario(BaseModel):
         default=None,
         description="Examples for Scenario Outline",
     )
+    tags: Optional[List[str]] = Field(
+        default=None,
+        description="Scenario tags (e.g., @smoke, @regression)",
+    )
 
 
 class BDDGenerationResponse(BaseModel):
@@ -73,6 +77,10 @@ class BDDGenerationResponse(BaseModel):
     feature_description: str = Field(..., description="Description of the feature")
     scenarios: List[BDDScenario] = Field(..., description="Generated BDD scenarios")
     gherkin: str = Field(..., description="Complete Gherkin feature file content")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional metadata about the generation",
+    )
 
 
 class CoverageSuggestion(BaseModel):

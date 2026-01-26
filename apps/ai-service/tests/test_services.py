@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services.bdd_generator import BDDGenerator
+from app.services.bdd_generator import BDDGenerationError, BDDGenerator
 from app.services.llm_client import LLMClientError, LLMResponse
 from app.services.test_generator import TestGenerationError, TestGenerator
 
@@ -544,8 +544,8 @@ class TestBDDGenerator:
 
     @pytest.fixture
     def generator(self) -> BDDGenerator:
-        """Create a BDDGenerator instance."""
-        return BDDGenerator()
+        """Create a BDDGenerator instance with mock mode enabled."""
+        return BDDGenerator(use_ai=False)
 
     @pytest.mark.asyncio
     async def test_generate_returns_scenarios(self, generator: BDDGenerator) -> None:
@@ -643,3 +643,695 @@ class TestGeneratorInitialization:
         generator = BDDGenerator()
         assert generator.api_key is None
         assert generator.provider == "openai"
+
+    def test_bdd_generator_use_ai_flag(self) -> None:
+        """Test that BDDGenerator accepts use_ai flag."""
+        generator = BDDGenerator(use_ai=False)
+        assert generator.use_ai is False
+
+
+class TestBDDGeneratorGenerateScenarios:
+    """Tests for BDDGenerator.generate_scenarios method with AI integration."""
+
+    @pytest.fixture
+    def mock_llm_response_data(self) -> Dict[str, Any]:
+        """Create mock LLM response data."""
+        return {
+            "feature_name": "User Authentication",
+            "scenarios": [
+                {
+                    "name": "Successful login with valid credentials",
+                    "tags": ["@smoke", "@login"],
+                    "given": [
+                        "the user is on the login page",
+                        "the user has a valid account",
+                    ],
+                    "when": [
+                        "the user enters valid email and password",
+                        "the user clicks the login button",
+                    ],
+                    "then": [
+                        "the user should be redirected to the dashboard",
+                        "the user should see a welcome message",
+                    ],
+                    "examples": None,
+                },
+                {
+                    "name": "Login with various credentials",
+                    "tags": ["@validation", "@regression"],
+                    "given": ["the user is on the login page"],
+                    "when": [
+                        "the user enters <email> and <password>",
+                        "the user clicks the login button",
+                    ],
+                    "then": ["the system should show <result>"],
+                    "examples": [
+                        {"email": "valid@test.com", "password": "pass123", "result": "success"},
+                        {"email": "invalid", "password": "pass123", "result": "error"},
+                        {"email": "valid@test.com", "password": "", "result": "error"},
+                    ],
+                },
+            ],
+        }
+
+    @pytest.fixture
+    def generator(self) -> BDDGenerator:
+        """Create a BDDGenerator with AI enabled."""
+        return BDDGenerator(api_key="test-key", provider="openai", use_ai=True)
+
+    @pytest.fixture
+    def mock_generator(self) -> BDDGenerator:
+        """Create a BDDGenerator with mock mode enabled."""
+        return BDDGenerator(use_ai=False)
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_calls_llm(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios calls the LLM client."""
+        mock_response = LLMResponse(
+            content=json.dumps(mock_llm_response_data),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            result = await generator.generate_scenarios(
+                feature_description="User login with email and password",
+                max_scenarios=5,
+            )
+
+            mock_client.complete_simple.assert_called_once()
+            assert len(result.scenarios) == 2
+            assert result.scenarios[0].name == "Successful login with valid credentials"
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_includes_metadata(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios includes comprehensive metadata."""
+        mock_response = LLMResponse(
+            content=json.dumps(mock_llm_response_data),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            result = await generator.generate_scenarios(
+                feature_description="User login feature",
+                scenario_focus="comprehensive",
+            )
+
+            assert result.metadata["provider"] == "openai"
+            assert result.metadata["model"] == "gpt-4-turbo-preview"
+            assert result.metadata["scenario_focus"] == "comprehensive"
+            assert result.metadata["prompt_tokens"] == 100
+            assert result.metadata["completion_tokens"] == 200
+            assert result.metadata["total_tokens"] == 300
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_respects_max_scenarios(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios limits results to max_scenarios."""
+        mock_response = LLMResponse(
+            content=json.dumps(mock_llm_response_data),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            result = await generator.generate_scenarios(
+                feature_description="User login feature",
+                max_scenarios=1,
+            )
+
+            assert len(result.scenarios) == 1
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_handles_llm_error(
+        self, generator: BDDGenerator
+    ) -> None:
+        """Test that generate_scenarios handles LLM errors gracefully."""
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(
+            side_effect=LLMClientError("API error")
+        )
+
+        with (
+            patch.object(generator, "_get_client", return_value=mock_client),
+            pytest.raises(BDDGenerationError, match="AI provider error"),
+        ):
+            await generator.generate_scenarios(
+                feature_description="User login feature",
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_handles_invalid_json(
+        self, generator: BDDGenerator
+    ) -> None:
+        """Test that generate_scenarios handles invalid JSON responses."""
+        mock_response = LLMResponse(
+            content="not valid json",
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=50,
+            total_tokens=150,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with (
+            patch.object(generator, "_get_client", return_value=mock_client),
+            pytest.raises(BDDGenerationError, match="Failed to parse"),
+        ):
+            await generator.generate_scenarios(
+                feature_description="User login feature",
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_handles_markdown_code_blocks(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios handles JSON wrapped in markdown code blocks."""
+        wrapped_content = f"```json\n{json.dumps(mock_llm_response_data)}\n```"
+
+        mock_response = LLMResponse(
+            content=wrapped_content,
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            result = await generator.generate_scenarios(
+                feature_description="User login feature",
+            )
+
+            assert len(result.scenarios) == 2
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_handles_array_response(
+        self, generator: BDDGenerator
+    ) -> None:
+        """Test that generate_scenarios handles a direct array of scenarios."""
+        array_response = [
+            {
+                "name": "Test scenario",
+                "given": ["precondition"],
+                "when": ["action"],
+                "then": ["outcome"],
+            }
+        ]
+
+        mock_response = LLMResponse(
+            content=json.dumps(array_response),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            result = await generator.generate_scenarios(
+                feature_description="User login feature",
+            )
+
+            assert len(result.scenarios) == 1
+            assert result.scenarios[0].name == "Test scenario"
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_with_context(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios passes context to the prompt."""
+        mock_response = LLMResponse(
+            content=json.dumps(mock_llm_response_data),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=150,
+            completion_tokens=200,
+            total_tokens=350,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            await generator.generate_scenarios(
+                feature_description="User login feature",
+                context="This is a healthcare application with HIPAA requirements",
+            )
+
+            call_args = mock_client.complete_simple.call_args
+            user_prompt = call_args[1]["user_prompt"]
+            assert "healthcare application" in user_prompt
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_uses_json_mode(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios uses JSON mode for LLM calls."""
+        mock_response = LLMResponse(
+            content=json.dumps(mock_llm_response_data),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            await generator.generate_scenarios(
+                feature_description="User login feature",
+            )
+
+            call_args = mock_client.complete_simple.call_args
+            assert call_args[1]["json_mode"] is True
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_passes_scenario_focus(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios passes scenario_focus to prompt."""
+        mock_response = LLMResponse(
+            content=json.dumps(mock_llm_response_data),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            await generator.generate_scenarios(
+                feature_description="Security feature",
+                scenario_focus="security",
+            )
+
+            call_args = mock_client.complete_simple.call_args
+            user_prompt = call_args[1]["user_prompt"]
+            assert "security" in user_prompt.lower()
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_returns_gherkin(
+        self, generator: BDDGenerator, mock_llm_response_data: Dict[str, Any]
+    ) -> None:
+        """Test that generate_scenarios returns properly formatted Gherkin."""
+        mock_response = LLMResponse(
+            content=json.dumps(mock_llm_response_data),
+            model="gpt-4-turbo-preview",
+            prompt_tokens=100,
+            completion_tokens=200,
+            total_tokens=300,
+            finish_reason="stop",
+        )
+
+        mock_client = AsyncMock()
+        mock_client.complete_simple = AsyncMock(return_value=mock_response)
+
+        with patch.object(generator, "_get_client", return_value=mock_client):
+            result = await generator.generate_scenarios(
+                feature_description="User login feature",
+            )
+
+            assert "Feature:" in result.gherkin
+            assert "Scenario" in result.gherkin
+            assert "Given" in result.gherkin
+            assert "When" in result.gherkin
+            assert "Then" in result.gherkin
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_mock_mode(
+        self, mock_generator: BDDGenerator
+    ) -> None:
+        """Test that generate_scenarios works in mock mode."""
+        result = await mock_generator.generate_scenarios(
+            feature_description="Test feature description",
+            max_scenarios=3,
+            include_examples=True,
+            include_tags=True,
+        )
+
+        assert len(result.scenarios) <= 3
+        assert result.feature_name is not None
+        assert "Feature:" in result.gherkin
+        assert result.metadata["model"] == "mock"
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_mock_includes_tags(
+        self, mock_generator: BDDGenerator
+    ) -> None:
+        """Test that mock scenarios include tags when requested."""
+        result = await mock_generator.generate_scenarios(
+            feature_description="Test feature",
+            include_tags=True,
+        )
+
+        # At least one scenario should have tags
+        has_tags = any(s.tags is not None and len(s.tags) > 0 for s in result.scenarios)
+        assert has_tags
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_mock_excludes_tags(
+        self, mock_generator: BDDGenerator
+    ) -> None:
+        """Test that mock scenarios exclude tags when requested."""
+        result = await mock_generator.generate_scenarios(
+            feature_description="Test feature",
+            include_tags=False,
+        )
+
+        # All scenarios should have no tags
+        for scenario in result.scenarios:
+            assert scenario.tags is None
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_mock_includes_examples(
+        self, mock_generator: BDDGenerator
+    ) -> None:
+        """Test that mock scenarios include examples when requested."""
+        result = await mock_generator.generate_scenarios(
+            feature_description="Test feature",
+            max_scenarios=3,
+            include_examples=True,
+        )
+
+        # At least one scenario should have examples
+        has_examples = any(s.examples is not None for s in result.scenarios)
+        assert has_examples
+
+    @pytest.mark.asyncio
+    async def test_generate_scenarios_mock_excludes_examples(
+        self, mock_generator: BDDGenerator
+    ) -> None:
+        """Test that mock scenarios exclude examples when requested."""
+        result = await mock_generator.generate_scenarios(
+            feature_description="Test feature",
+            max_scenarios=3,
+            include_examples=False,
+        )
+
+        # All scenarios should have no examples
+        for scenario in result.scenarios:
+            assert scenario.examples is None
+
+
+class TestBDDGeneratorParsing:
+    """Tests for BDDGenerator response parsing."""
+
+    def test_parse_response_with_scenarios_key(self) -> None:
+        """Test parsing a response with scenarios key."""
+        generator = BDDGenerator(use_ai=False)
+        content = json.dumps({
+            "feature_name": "Test Feature",
+            "scenarios": [
+                {
+                    "name": "Test scenario",
+                    "given": ["precondition"],
+                    "when": ["action"],
+                    "then": ["outcome"],
+                }
+            ]
+        })
+
+        result = generator._parse_response(content)
+
+        assert result["feature_name"] == "Test Feature"
+        assert len(result["scenarios"]) == 1
+        assert result["scenarios"][0].name == "Test scenario"
+
+    def test_parse_response_array(self) -> None:
+        """Test parsing a JSON array response."""
+        generator = BDDGenerator(use_ai=False)
+        content = json.dumps([
+            {
+                "name": "Test scenario",
+                "given": ["precondition"],
+                "when": ["action"],
+                "then": ["outcome"],
+            }
+        ])
+
+        result = generator._parse_response(content)
+
+        assert result["feature_name"] is None
+        assert len(result["scenarios"]) == 1
+
+    def test_parse_response_strips_code_blocks(self) -> None:
+        """Test that code blocks are stripped from response."""
+        generator = BDDGenerator(use_ai=False)
+        content = '```json\n{"scenarios": [{"name": "Test", "given": [], "when": [], "then": []}]}\n```'
+
+        result = generator._parse_response(content)
+
+        assert len(result["scenarios"]) == 1
+        assert result["scenarios"][0].name == "Test"
+
+    def test_parse_response_missing_scenarios_key_raises(self) -> None:
+        """Test that missing scenarios key raises ValueError."""
+        generator = BDDGenerator(use_ai=False)
+        content = json.dumps({"feature_name": "Test"})
+
+        with pytest.raises(ValueError, match="Expected array or object with 'scenarios' key"):
+            generator._parse_response(content)
+
+    def test_parse_scenario_missing_name_raises(self) -> None:
+        """Test that missing name raises ValueError."""
+        generator = BDDGenerator(use_ai=False)
+        content = json.dumps({
+            "scenarios": [
+                {
+                    "given": ["precondition"],
+                    "when": ["action"],
+                    "then": ["outcome"],
+                }
+            ]
+        })
+
+        with pytest.raises(ValueError, match="Scenario missing required field: name"):
+            generator._parse_response(content)
+
+    def test_parse_scenario_string_steps_to_list(self) -> None:
+        """Test that string steps are converted to lists."""
+        generator = BDDGenerator(use_ai=False)
+        content = json.dumps({
+            "scenarios": [
+                {
+                    "name": "Test",
+                    "given": "single precondition",
+                    "when": "single action",
+                    "then": "single outcome",
+                }
+            ]
+        })
+
+        result = generator._parse_response(content)
+
+        assert result["scenarios"][0].given == ["single precondition"]
+        assert result["scenarios"][0].when == ["single action"]
+        assert result["scenarios"][0].then == ["single outcome"]
+
+    def test_parse_scenario_with_tags(self) -> None:
+        """Test parsing scenario with tags."""
+        generator = BDDGenerator(use_ai=False)
+        content = json.dumps({
+            "scenarios": [
+                {
+                    "name": "Test",
+                    "tags": ["@smoke", "@critical"],
+                    "given": [],
+                    "when": [],
+                    "then": [],
+                }
+            ]
+        })
+
+        result = generator._parse_response(content)
+
+        assert result["scenarios"][0].tags == ["@smoke", "@critical"]
+
+    def test_parse_scenario_with_examples(self) -> None:
+        """Test parsing scenario with examples."""
+        generator = BDDGenerator(use_ai=False)
+        content = json.dumps({
+            "scenarios": [
+                {
+                    "name": "Test",
+                    "given": [],
+                    "when": ["enter <value>"],
+                    "then": ["see <result>"],
+                    "examples": [
+                        {"value": "a", "result": "1"},
+                        {"value": "b", "result": "2"},
+                    ],
+                }
+            ]
+        })
+
+        result = generator._parse_response(content)
+
+        assert len(result["scenarios"][0].examples) == 2
+        assert result["scenarios"][0].examples[0]["value"] == "a"
+
+
+class TestBDDGeneratorGherkinFormatting:
+    """Tests for BDDGenerator Gherkin formatting."""
+
+    @pytest.fixture
+    def generator(self) -> BDDGenerator:
+        """Create a BDDGenerator instance."""
+        return BDDGenerator(use_ai=False)
+
+    def test_format_gherkin_basic(self, generator: BDDGenerator) -> None:
+        """Test basic Gherkin formatting."""
+        from app.models.responses import BDDScenario
+
+        scenarios = [
+            BDDScenario(
+                name="Test scenario",
+                given=["precondition 1", "precondition 2"],
+                when=["action"],
+                then=["outcome 1", "outcome 2"],
+            )
+        ]
+
+        gherkin = generator._format_gherkin(
+            feature_name="Test Feature",
+            feature_description="Test description",
+            scenarios=scenarios,
+        )
+
+        assert "Feature: Test Feature" in gherkin
+        assert "Test description" in gherkin
+        assert "Scenario: Test scenario" in gherkin
+        assert "Given precondition 1" in gherkin
+        assert "And precondition 2" in gherkin
+        assert "When action" in gherkin
+        assert "Then outcome 1" in gherkin
+        assert "And outcome 2" in gherkin
+
+    def test_format_gherkin_with_tags(self, generator: BDDGenerator) -> None:
+        """Test Gherkin formatting with tags."""
+        from app.models.responses import BDDScenario
+
+        scenarios = [
+            BDDScenario(
+                name="Test scenario",
+                given=["precondition"],
+                when=["action"],
+                then=["outcome"],
+                tags=["@smoke", "@critical"],
+            )
+        ]
+
+        gherkin = generator._format_gherkin(
+            feature_name="Test Feature",
+            feature_description="Test description",
+            scenarios=scenarios,
+            include_tags=True,
+        )
+
+        assert "@smoke @critical" in gherkin
+
+    def test_format_gherkin_without_tags(self, generator: BDDGenerator) -> None:
+        """Test Gherkin formatting without tags."""
+        from app.models.responses import BDDScenario
+
+        scenarios = [
+            BDDScenario(
+                name="Test scenario",
+                given=["precondition"],
+                when=["action"],
+                then=["outcome"],
+                tags=["@smoke", "@critical"],
+            )
+        ]
+
+        gherkin = generator._format_gherkin(
+            feature_name="Test Feature",
+            feature_description="Test description",
+            scenarios=scenarios,
+            include_tags=False,
+        )
+
+        assert "@smoke" not in gherkin
+        assert "@critical" not in gherkin
+
+    def test_format_gherkin_scenario_outline(self, generator: BDDGenerator) -> None:
+        """Test Gherkin formatting with Scenario Outline."""
+        from app.models.responses import BDDScenario
+
+        scenarios = [
+            BDDScenario(
+                name="Test scenario outline",
+                given=["precondition"],
+                when=["enter <value>"],
+                then=["see <result>"],
+                examples=[
+                    {"value": "a", "result": "1"},
+                    {"value": "b", "result": "2"},
+                ],
+            )
+        ]
+
+        gherkin = generator._format_gherkin(
+            feature_name="Test Feature",
+            feature_description="Test description",
+            scenarios=scenarios,
+        )
+
+        assert "Scenario Outline: Test scenario outline" in gherkin
+        assert "Examples:" in gherkin
+        assert "| value | result |" in gherkin
+        assert "| a | 1 |" in gherkin
+        assert "| b | 2 |" in gherkin
+
+    def test_extract_feature_name_short(self, generator: BDDGenerator) -> None:
+        """Test feature name extraction for short descriptions."""
+        name = generator._extract_feature_name("User login. With password.")
+
+        assert name == "User login"
+
+    def test_extract_feature_name_long(self, generator: BDDGenerator) -> None:
+        """Test feature name extraction for long descriptions."""
+        long_description = "A very long feature description that exceeds fifty characters easily"
+        name = generator._extract_feature_name(long_description)
+
+        assert len(name) == 50
+        assert name.endswith("...")
