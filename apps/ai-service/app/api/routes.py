@@ -53,14 +53,22 @@ async def generate_tests(
         HTTPException: If test generation fails
     """
     try:
-        generator = TestGenerator(
-            api_key=settings.openai_api_key
+        # Determine API key based on provider
+        api_key = (
+            settings.openai_api_key
             if settings.default_ai_provider == "openai"
-            else settings.anthropic_api_key,
+            else settings.anthropic_api_key
+        )
+        # Use AI only if an API key is configured
+        use_ai = bool(api_key)
+
+        generator = TestGenerator(
+            api_key=api_key,
             provider=settings.default_ai_provider,
+            use_ai=use_ai,
         )
 
-        return await generator.generate(
+        return await generator.generate_tests(
             description=request.description,
             context=request.context,
             test_type=request.test_type,
