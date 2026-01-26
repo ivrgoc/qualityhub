@@ -19,6 +19,20 @@ export {
 export { getInitials } from '@/utils/avatar';
 export { Badge, type BadgeProps } from './Badge';
 export { Button, type ButtonProps } from './Button';
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  type CardProps,
+  type CardHeaderProps,
+  type CardTitleProps,
+  type CardDescriptionProps,
+  type CardContentProps,
+  type CardFooterProps,
+} from './Card';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
 export {
