@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PassThrough } from 'stream';
 import { TestRun, TestRunStatus } from '../test-runs/entities/test-run.entity';
 import { TestResult, TestStatus } from '../test-runs/entities/test-result.entity';
 import { TestCase } from '../test-cases/entities/test-case.entity';
@@ -12,7 +13,14 @@ import {
   DefectsReportDto,
   ActivityReportDto,
   TrendsReportDto,
+  ReportType,
 } from './dto';
+import { PdfGeneratorService } from './pdf-generator.service';
+
+export interface PdfExportResult {
+  stream: PassThrough;
+  filename: string;
+}
 
 @Injectable()
 export class ReportsService {
@@ -27,6 +35,7 @@ export class ReportsService {
     private readonly requirementRepository: Repository<Requirement>,
     @InjectRepository(RequirementCoverage)
     private readonly coverageRepository: Repository<RequirementCoverage>,
+    private readonly pdfGenerator: PdfGeneratorService,
   ) {}
 
   // ============ Public API Methods ============
@@ -41,6 +50,38 @@ export class ReportsService {
 
   async getDefects(projectId: string): Promise<DefectsReportDto> {
     return this.getDefectsReport(projectId);
+  }
+
+  async exportPdf(
+    projectId: string,
+    reportType: ReportType,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<PdfExportResult> {
+    switch (reportType) {
+      case ReportType.SUMMARY: {
+        const data = await this.getProjectSummary(projectId);
+        return this.pdfGenerator.generateSummaryPdf(data);
+      }
+      case ReportType.COVERAGE: {
+        const data = await this.getCoverageReport(projectId);
+        return this.pdfGenerator.generateCoveragePdf(data);
+      }
+      case ReportType.DEFECTS: {
+        const data = await this.getDefectsReport(projectId);
+        return this.pdfGenerator.generateDefectsPdf(data);
+      }
+      case ReportType.ACTIVITY: {
+        const data = await this.getActivityReport(projectId, startDate, endDate);
+        return this.pdfGenerator.generateActivityPdf(data);
+      }
+      case ReportType.TRENDS: {
+        const data = await this.getTrends(projectId, startDate, endDate);
+        return this.pdfGenerator.generateTrendsPdf(data);
+      }
+      default:
+        throw new Error(`Unknown report type: ${reportType}`);
+    }
   }
 
   async getTrends(

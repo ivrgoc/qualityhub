@@ -3,8 +3,11 @@ import {
   Get,
   Param,
   Query,
+  Res,
   UseGuards,
   ParseUUIDPipe,
+  StreamableFile,
+  Header,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -12,7 +15,9 @@ import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiQuery,
+  ApiProduces,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { ReportsService } from './reports.service';
 import {
   ProjectSummaryDto,
@@ -20,6 +25,7 @@ import {
   DefectsReportDto,
   ActivityReportDto,
   TrendsReportDto,
+  ExportReportQueryDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -124,5 +130,42 @@ export class ReportsController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     return this.reportsService.getTrends(projectId, start, end);
+  }
+
+  @Get('export')
+  @ApiOperation({ summary: 'Export report as PDF' })
+  @ApiProduces('application/pdf')
+  @ApiOkResponse({
+    description: 'PDF file download',
+    content: {
+      'application/pdf': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Header('Content-Type', 'application/pdf')
+  async exportPdf(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query() query: ExportReportQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const startDate = query.startDate ? new Date(query.startDate) : undefined;
+    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+
+    const { stream, filename } = await this.reportsService.exportPdf(
+      projectId,
+      query.type,
+      startDate,
+      endDate,
+    );
+
+    res.set({
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+
+    return new StreamableFile(stream);
   }
 }

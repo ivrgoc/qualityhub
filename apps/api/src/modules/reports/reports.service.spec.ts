@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PassThrough } from 'stream';
 import { ReportsService } from './reports.service';
+import { PdfGeneratorService } from './pdf-generator.service';
+import { ReportType } from './dto';
 import { TestRun, TestRunStatus } from '../test-runs/entities/test-run.entity';
 import { TestResult, TestStatus } from '../test-runs/entities/test-result.entity';
 import { TestCase } from '../test-cases/entities/test-case.entity';
@@ -46,10 +49,22 @@ describe('ReportsService', () => {
     getRawOne: jest.fn(),
   };
 
+  const mockPdfGeneratorService = {
+    generateSummaryPdf: jest.fn(),
+    generateCoveragePdf: jest.fn(),
+    generateDefectsPdf: jest.fn(),
+    generateActivityPdf: jest.fn(),
+    generateTrendsPdf: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReportsService,
+        {
+          provide: PdfGeneratorService,
+          useValue: mockPdfGeneratorService,
+        },
         {
           provide: getRepositoryToken(TestRun),
           useValue: {
@@ -797,6 +812,107 @@ describe('ReportsService', () => {
       expect(result.executionTrends).toHaveLength(1);
       expect(result.averagePassRate).toBe(80);
       expect(result.passRateTrend).toBe(0); // No trend with single data point
+    });
+  });
+
+  // ============ PDF Export ============
+
+  describe('exportPdf', () => {
+    const mockPdfResult = {
+      stream: new PassThrough(),
+      filename: 'test-report.pdf',
+    };
+
+    beforeEach(() => {
+      // Reset all mock implementations
+      mockPdfGeneratorService.generateSummaryPdf.mockReturnValue(mockPdfResult);
+      mockPdfGeneratorService.generateCoveragePdf.mockReturnValue(mockPdfResult);
+      mockPdfGeneratorService.generateDefectsPdf.mockReturnValue(mockPdfResult);
+      mockPdfGeneratorService.generateActivityPdf.mockReturnValue(mockPdfResult);
+      mockPdfGeneratorService.generateTrendsPdf.mockReturnValue(mockPdfResult);
+    });
+
+    it('should export summary report as PDF', async () => {
+      testCaseRepository.count.mockResolvedValue(10);
+      testRunRepository.count.mockResolvedValue(0);
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([]);
+      requirementRepository.find.mockResolvedValue([]);
+
+      const result = await service.exportPdf('proj-123', ReportType.SUMMARY);
+
+      expect(result).toEqual(mockPdfResult);
+      expect(mockPdfGeneratorService.generateSummaryPdf).toHaveBeenCalled();
+    });
+
+    it('should export coverage report as PDF', async () => {
+      requirementRepository.find.mockResolvedValue([]);
+
+      const result = await service.exportPdf('proj-123', ReportType.COVERAGE);
+
+      expect(result).toEqual(mockPdfResult);
+      expect(mockPdfGeneratorService.generateCoveragePdf).toHaveBeenCalled();
+    });
+
+    it('should export defects report as PDF', async () => {
+      mockTestResultQueryBuilder.getMany.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      const result = await service.exportPdf('proj-123', ReportType.DEFECTS);
+
+      expect(result).toEqual(mockPdfResult);
+      expect(mockPdfGeneratorService.generateDefectsPdf).toHaveBeenCalled();
+    });
+
+    it('should export activity report as PDF', async () => {
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await service.exportPdf('proj-123', ReportType.ACTIVITY);
+
+      expect(result).toEqual(mockPdfResult);
+      expect(mockPdfGeneratorService.generateActivityPdf).toHaveBeenCalled();
+    });
+
+    it('should export activity report with date range as PDF', async () => {
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-01-31');
+
+      const result = await service.exportPdf('proj-123', ReportType.ACTIVITY, startDate, endDate);
+
+      expect(result).toEqual(mockPdfResult);
+      expect(mockPdfGeneratorService.generateActivityPdf).toHaveBeenCalled();
+    });
+
+    it('should export trends report as PDF', async () => {
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await service.exportPdf('proj-123', ReportType.TRENDS);
+
+      expect(result).toEqual(mockPdfResult);
+      expect(mockPdfGeneratorService.generateTrendsPdf).toHaveBeenCalled();
+    });
+
+    it('should export trends report with date range as PDF', async () => {
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-01-31');
+
+      const result = await service.exportPdf('proj-123', ReportType.TRENDS, startDate, endDate);
+
+      expect(result).toEqual(mockPdfResult);
+      expect(mockPdfGeneratorService.generateTrendsPdf).toHaveBeenCalled();
+    });
+
+    it('should throw error for unknown report type', async () => {
+      await expect(
+        service.exportPdf('proj-123', 'invalid' as ReportType),
+      ).rejects.toThrow('Unknown report type: invalid');
     });
   });
 });
