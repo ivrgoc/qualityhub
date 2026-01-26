@@ -2,6 +2,7 @@
 import { type FC, Suspense, lazy } from 'react';
 import { createBrowserRouter, Outlet, type RouteObject } from 'react-router-dom';
 import { Spinner } from '@/components/ui';
+import { DashboardLayout } from '@/components/layouts';
 import { ProtectedRoute, GuestRoute } from '@/components/routing';
 
 // Lazy-loaded page components
@@ -83,17 +84,29 @@ const guestRoutes: RouteObject[] = [
 ];
 
 /**
+ * Layout wrapper for protected routes that includes the dashboard layout.
+ */
+const ProtectedLayout: FC = () => (
+  <ProtectedRoute>
+    <DashboardLayout>
+      <Outlet />
+    </DashboardLayout>
+  </ProtectedRoute>
+);
+
+/**
  * Route configuration for protected routes (require authentication).
  * Unauthenticated users are redirected to login.
  */
 const protectedRoutes: RouteObject[] = [
   {
-    path: '/dashboard',
-    element: (
-      <ProtectedRoute>
-        <DashboardPage />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedLayout />,
+    children: [
+      {
+        path: '/dashboard',
+        element: <DashboardPage />,
+      },
+    ],
   },
 ];
 
