@@ -3,3 +3,4 @@ export * from './authApi';
 export * from './projectsApi';
 export * from './testCasesApi';
 export * from './testRunsApi';
+export * from './reportsApi';
