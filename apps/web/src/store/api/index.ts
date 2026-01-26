@@ -2,3 +2,4 @@ export { baseApi, TAG_TYPES, createTag, createListTag, type TagType } from './ba
 export * from './authApi';
 export * from './projectsApi';
 export * from './testCasesApi';
+export * from './testRunsApi';
