@@ -22,6 +22,7 @@ import { RequirementsModule } from './modules/requirements/requirements.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
     ReportsModule,
     DashboardModule,
     AttachmentsModule,
+    AiModule,
   ],
 })
 export class AppModule {}
