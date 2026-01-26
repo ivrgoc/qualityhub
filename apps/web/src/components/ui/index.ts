@@ -169,3 +169,8 @@ export {
   TooltipTrigger,
   type TooltipContentProps,
 } from './Tooltip';
+export {
+  ErrorBoundary,
+  type ErrorBoundaryProps,
+  type ErrorBoundaryState,
+} from './ErrorBoundary';
