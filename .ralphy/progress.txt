@@ -1,0 +1,112 @@
+# Ralphy Progress Log
+
+- [✓] 2026-01-25 15:29 - Initialize pnpm workspace with `pnpm init` and create `pnpm-workspace.yaml` containing `apps/*` and `packages/*`
+- [✓] 2026-01-25 15:31 - Create root `package.json` with scripts: dev, build, test, lint, format, and db:migrate
+- [✓] 2026-01-25 15:33 - Create `turbo.json` with build pipeline (build → test → lint) and persistent dev task
+- [✓] 2026-01-25 15:34 - Create `tsconfig.base.json` with strict mode, ES2022 target, and bundler module resolution
+- [✓] 2026-01-25 15:35 - Create `.gitignore` for node_modules, dist, .env, coverage, and IDE files
+- [✓] 2026-01-25 15:35 - Create `.prettierrc` with singleQuote, semi, tabWidth 2, and trailingComma es5
+- [✓] 2026-01-25 15:36 - Create `.nvmrc` with Node version 20.11.0
+- [✓] 2026-01-25 15:41 - Create `apps/api` directory for NestJS backend
+- [✓] 2026-01-25 16:35 - Create `apps/web` directory for React frontend
+- [✓] 2026-01-25 16:54 - Create `apps/ai-service` directory for Python FastAPI
+- [✓] 2026-01-25 18:06 - Create `packages/shared-types` directory for TypeScript interfaces
+- [✓] 2026-01-25 18:11 - Create `packages/eslint-config` directory for shared ESLint rules
+- [✓] 2026-01-25 18:16 - Create `infrastructure/docker` directory for Dockerfiles
+- [✓] 2026-01-25 18:17 - Create `docs` directory for documentation
+- [✓] 2026-01-25 18:18 - Create `packages/shared-types/package.json` with name `@qualityhub/shared-types`
+- [✓] 2026-01-25 18:19 - Create `packages/shared-types/tsconfig.json` with declaration output enabled
+- [✓] 2026-01-25 18:21 - Create `packages/shared-types/src/user.ts` with User interface and UserRole enum (VIEWER, TESTER, LEAD, ADMIN)
+- [✓] 2026-01-25 18:23 - Create `packages/shared-types/src/project.ts` with Project and ProjectMember interfaces
+- [✓] 2026-01-25 18:25 - Create `packages/shared-types/src/test-case.ts` with TestCase, TestStep interfaces and Priority, Template enums
+- [✓] 2026-01-25 18:27 - Create `packages/shared-types/src/test-run.ts` with TestRun, TestResult interfaces and TestStatus enum
+- [✓] 2026-01-25 18:29 - Create `packages/shared-types/src/api.ts` with ApiResponse, PaginatedResponse, ErrorResponse interfaces
+- [✓] 2026-01-25 18:33 - Create `packages/shared-types/src/index.ts` exporting all types
+- [✓] 2026-01-25 18:36 - Create `docker-compose.yml` with postgres:16, redis:7, and mailhog services
+- [✓] 2026-01-25 18:37 - Create `infrastructure/docker/Dockerfile.api` with multi-stage Node build
+- [✓] 2026-01-25 18:38 - Create `infrastructure/docker/Dockerfile.web` with Vite build and nginx serve
+- [✓] 2026-01-25 18:41 - Create `infrastructure/docker/Dockerfile.ai` with Python 3.11 and uvicorn
+- [✓] 2026-01-25 18:43 - Create `.env.example` documenting DATABASE_URL, REDIS_URL, JWT_SECRET, OPENAI_API_KEY
+- [✓] 2026-01-25 18:45 - Initialize NestJS in `apps/api` with Express platform
+- [✓] 2026-01-25 18:49 - Create `apps/api/package.json` with @nestjs/\*, typeorm, pg, passport-jwt, bcrypt dependencies
+- [✓] 2026-01-25 18:49 - Create `apps/api/tsconfig.json` with decorators and path aliases enabled
+- [✓] 2026-01-25 18:51 - Create `apps/api/src/main.ts` with ValidationPipe, CORS, Swagger, and /api/v1 prefix
+- [✓] 2026-01-25 19:03 - Create `apps/api/src/app.module.ts` importing Config, Database, Auth, and feature modules
+- [✓] 2026-01-25 19:06 - Create `apps/api/src/config/configuration.ts` with typed config for database, jwt, redis, app
+- [✓] 2026-01-25 19:10 - Create `apps/api/src/config/validation.schema.ts` with Joi validation for env variables
+- [✓] 2026-01-25 19:13 - Create `apps/api/src/config/database.config.ts` with TypeORM async configuration
+- [✓] 2026-01-25 19:17 - Create migration for `organizations` table (id, name, slug, plan, settings, created_at)
+- [✓] 2026-01-25 19:20 - Create migration for `users` table (id, org_id, email, password_hash, name, role, created_at)
+- [✓] 2026-01-25 19:22 - Create migration for `projects` table (id, org_id, name, description, settings, timestamps, deleted_at)
+- [✓] 2026-01-25 19:24 - Create migration for `test_suites` table (id, project_id, name, description, created_at)
+- [✓] 2026-01-25 19:26 - Create migration for `sections` table (id, suite_id, name, parent_id, position, created_at)
+- [✓] 2026-01-25 19:27 - Create migration for `test_cases` table (id, section_id, title, template, steps, priority, version, timestamps)
+- [✓] 2026-01-25 19:30 - Create migration for `test_case_versions` table (id, case_id, version, data, changed_by, created_at)
+- [✓] 2026-01-25 19:32 - Create migration for `milestones` table (id, project_id, name, due_date, is_completed)
+- [✓] 2026-01-25 19:34 - Create migration for `test_plans` table (id, project_id, milestone_id, name, created_at)
+- [✓] 2026-01-25 19:36 - Create migration for `test_runs` table (id, project_id, plan_id, name, config, assignee_id, timestamps)
+- [✓] 2026-01-25 19:39 - Create migration for `test_results` table (id, run_id, case_id, status, comment, elapsed, defects, executed_at)
+- [✓] 2026-01-25 19:41 - Create migration for `requirements` table (id, project_id, external_id, title, status)
+- [✓] 2026-01-25 19:43 - Create migration for `attachments` table (id, entity_type, entity_id, filename, path, size, mime)
+- [✓] 2026-01-25 19:45 - Create migration to add indexes on foreign keys and commonly queried columns
+- [✓] 2026-01-25 19:47 - Create `@CurrentUser()` decorator to extract user from request
+- [✓] 2026-01-25 19:50 - Create `@Public()` decorator to skip authentication
+- [✓] 2026-01-25 20:05 - Create `JwtAuthGuard` extending AuthGuard with public route bypass
+- [✓] 2026-01-25 20:09 - Create `PermissionsGuard` checking user role against required permissions
+- [✓] 2026-01-25 20:13 - Create `HttpExceptionFilter` with consistent error response format
+- [✓] 2026-01-25 20:16 - Create `TransformInterceptor` wrapping responses in {success, data, timestamp}
+- [✓] 2026-01-25 20:19 - Create `PaginationDto` with page, limit, sortBy, sortOrder fields
+- [✓] 2026-01-25 20:21 - Create password utility with bcrypt hash (12 rounds) and compare functions
+- [✓] 2026-01-25 20:25 - Create `AuthModule` with Passport, JWT configuration
+- [✓] 2026-01-25 20:31 - Create `AuthController` with POST /register, /login, /logout, /refresh, GET /me
+- [✓] 2026-01-25 20:33 - Create `AuthService` with register, validateUser, login, refreshTokens, logout methods
+- [✓] 2026-01-25 20:35 - Create `JwtStrategy` validating tokens and returning user payload
+- [✓] 2026-01-25 20:40 - Create `LocalStrategy` for email/password authentication
+- [✓] 2026-01-25 20:43 - Create `RegisterDto` with email, password (min 12), name, organizationName validation
+- [✓] 2026-01-25 20:45 - Create `LoginDto` with email, password validation
+- [✓] 2026-01-25 20:48 - Create `AuthResponseDto` with user object and tokens
+- [✓] 2026-01-25 20:53 - Create `UsersModule` with TypeORM User and RefreshToken entities
+- [✓] 2026-01-25 20:59 - Create `User` entity with id, email, passwordHash, name, role, organization relation
+- [✓] 2026-01-25 21:01 - Create `RefreshToken` entity with token, expiresAt, user relation
+- [✓] 2026-01-25 21:04 - Create `UsersService` with findById, findByEmail, create, update, delete methods
+- [✓] 2026-01-25 21:07 - Create `UsersController` with GET /, GET /:id, PATCH /:id, DELETE /:id endpoints
+- [✓] 2026-01-25 21:12 - Create `OrganizationsModule` with Organization entity
+- [✓] 2026-01-25 21:14 - Create `Organization` entity with name, slug, plan, settings, users relation
+- [✓] 2026-01-25 21:16 - Create `OrganizationsService` with create, findById, update, getMembers methods
+- [✓] 2026-01-25 21:19 - Create `OrganizationsController` with GET /current, PATCH, GET /members endpoints
+- [✓] 2026-01-25 21:28 - Create `ProjectsModule` with Project and ProjectMember entities
+- [✓] 2026-01-25 21:31 - Create `Project` entity with name, description, settings, soft delete, members relation
+- [✓] 2026-01-25 21:33 - Create `ProjectMember` entity with userId, projectId, role
+- [✓] 2026-01-25 21:34 - Create `ProjectsService` with CRUD and member management methods
+- [✓] 2026-01-25 21:36 - Create `ProjectsController` with full CRUD and /members endpoints
+- [✓] 2026-01-25 21:39 - Create `CreateProjectDto` and `AddMemberDto` with validation
+- [✓] 2026-01-25 21:47 - Create `TestSuitesModule` with TestSuite and Section entities
+- [✓] 2026-01-25 21:50 - Create `TestSuite` entity with name, description, project relation
+- [✓] 2026-01-25 21:53 - Create `Section` entity with name, parentId self-reference, position, test cases relation
+- [✓] 2026-01-25 21:59 - Create `TestSuitesService` with suite CRUD and section tree operations
+- [✓] 2026-01-25 22:01 - Create `TestSuitesController` with /suites and /sections endpoints
+- [✓] 2026-01-25 22:11 - Create `TestCasesModule` with TestCase and TestCaseVersion entities
+- [✓] 2026-01-25 22:14 - Create `TestCase` entity with title, template, steps (JSONB), priority, version, soft delete
+- [✓] 2026-01-25 22:16 - Create `TestCaseVersion` entity storing historical snapshots
+- [✓] 2026-01-25 22:20 - Create `TestCasesService` with CRUD, versioning on update, bulk operations
+- [✓] 2026-01-25 22:23 - Create `TestCasesController` with CRUD, /history, /bulk endpoints
+- [✓] 2026-01-25 22:27 - Create `CreateTestCaseDto` with nested TestStepDto validation
+- [✓] 2026-01-25 22:30 - Create `BulkMoveDto` and `BulkDeleteDto` for bulk operations
+- [✓] 2026-01-25 22:38 - Create `MilestonesModule` with Milestone entity
+- [✓] 2026-01-25 22:42 - Create `Milestone` entity with name, dueDate, isCompleted, test plans relation
+- [✓] 2026-01-25 22:46 - Create `MilestonesService` with CRUD and progress calculation
+- [✓] 2026-01-25 22:48 - Create `MilestonesController` with CRUD endpoints
+- [✓] 2026-01-25 22:54 - Create `TestPlansModule` with TestPlan entity
+- [✓] 2026-01-25 23:03 - Create `TestPlan` entity with name, milestone relation, entries
+- [✓] 2026-01-25 23:06 - Create `TestPlansService` with CRUD and entry management
+- [✓] 2026-01-25 23:07 - Create `TestPlansController` with CRUD and /entries endpoints
+- [✓] 2026-01-25 23:14 - Create `TestRunsModule` with TestRun and TestResult entities
+- [✓] 2026-01-25 23:17 - Create `TestRun` entity with name, config, assignee, timestamps
+- [✓] 2026-01-25 23:19 - Create `TestResult` entity with status enum, comment, elapsed, defects (JSONB)
+- [✓] 2026-01-25 23:22 - Create `TestRunsService` with CRUD, result recording, progress aggregation
+- [✓] 2026-01-25 23:25 - Create `TestRunsController` with CRUD, /results, /close endpoints
+- [✓] 2026-01-25 23:27 - Create `AddResultDto` with status, comment, elapsed, defects validation
+- [✓] 2026-01-25 23:34 - Create `RequirementsModule` with Requirement and coverage entities
+- [✓] 2026-01-25 23:36 - Create `Requirement` entity with externalId, title, status, test case links
+- [✓] 2026-01-25 23:39 - Create `RequirementsService` with CRUD and coverage calculation
+- [✓] 2026-01-25 23:42 - Create `RequirementsController` with CRUD and /coverage endpoints

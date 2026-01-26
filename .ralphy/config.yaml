@@ -1,0 +1,554 @@
+# Ralphy Configuration
+# https://github.com/michaelshimeles/ralphy
+# QualityHub - Test Management Platform
+
+name: "QualityHub"
+description: "AI-powered Test Management Platform for QA teams"
+version: "1.0.0"
+
+# =============================================================================
+# PROJECT OVERVIEW
+# =============================================================================
+project:
+  type: "fullstack-saas"
+  domain: "test-management"
+  stage: "development"
+  
+  summary: |
+    QualityHub is a modern, AI-driven test management platform that enables QA teams 
+    to centralize test case management, plan and execute tests, track defects, and 
+    generate advanced reports. The platform combines manual and automated testing 
+    in a unified environment with full traceability from requirements to delivery.
+
+  key_features:
+    - "Test case management with versioning"
+    - "Test plans and execution tracking"
+    - "AI-powered test case generation"
+    - "Requirements traceability"
+    - "Integrations (Jira, Azure DevOps, CI/CD)"
+    - "Advanced reporting and dashboards"
+    - "Multi-tenant SaaS architecture"
+
+# =============================================================================
+# TECHNOLOGY STACK
+# =============================================================================
+tech_stack:
+  frontend:
+    framework: "React 18+"
+    language: "TypeScript 5.x"
+    state_management: "Redux Toolkit + RTK Query"
+    routing: "React Router v6"
+    styling: "Tailwind CSS 3.x"
+    ui_components: "Radix UI"
+    forms: "React Hook Form + Zod"
+    charts: "Recharts"
+    tables: "TanStack Table v8"
+    rich_text: "TipTap"
+    build_tool: "Vite"
+    testing: "Vitest + React Testing Library"
+    
+  backend:
+    primary_api:
+      framework: "NestJS 10+"
+      language: "TypeScript 5.x"
+      runtime: "Node.js 20 LTS"
+    ai_service:
+      framework: "FastAPI"
+      language: "Python 3.11+"
+    
+  database:
+    primary: "PostgreSQL 16"
+    cache: "Redis 7"
+    search: "Elasticsearch 8"
+    analytics: "ClickHouse"
+    
+  infrastructure:
+    container: "Docker"
+    orchestration: "Kubernetes"
+    cloud: "AWS / Azure / GCP"
+    cdn: "CloudFlare"
+    storage: "S3-compatible"
+    message_queue: "RabbitMQ"
+
+# =============================================================================
+# CODING STANDARDS
+# =============================================================================
+rules:
+  # ---------------------------------------------------------------------------
+  # GENERAL RULES
+  # ---------------------------------------------------------------------------
+  general:
+    - "Use TypeScript strict mode for all frontend and backend code"
+    - "Never use 'any' type - always define proper interfaces/types"
+    - "All functions must have explicit return types"
+    - "Use async/await instead of .then() chains"
+    - "Prefer const over let, never use var"
+    - "Use meaningful variable and function names (no abbreviations)"
+    - "Maximum function length: 50 lines"
+    - "Maximum file length: 400 lines"
+    - "One component/class per file"
+    - "All public APIs must be documented with JSDoc/TSDoc"
+
+  # ---------------------------------------------------------------------------
+  # FRONTEND RULES (React/TypeScript)
+  # ---------------------------------------------------------------------------
+  frontend:
+    components:
+      - "Use functional components with hooks only (no class components)"
+      - "Component files use PascalCase: TestCaseCard.tsx"
+      - "One component per file, named export preferred"
+      - "Props interface named as ComponentNameProps"
+      - "Destructure props in function signature"
+      - "Use React.FC only when children are needed"
+      - "Memoize expensive computations with useMemo"
+      - "Memoize callbacks passed to children with useCallback"
+      - "Extract complex logic to custom hooks (useTestCases, useTestRun)"
+
+    state_management:
+      - "Use RTK Query for all API calls with caching"
+      - "Local UI state stays in component (useState)"
+      - "Shared state goes to Redux slices"
+      - "Never store derived state - compute it"
+      - "Normalize nested data in Redux store"
+
+    styling:
+      - "Use Tailwind CSS utility classes"
+      - "No inline styles except dynamic values"
+      - "Use cn() helper for conditional classes"
+      - "Component-specific styles in same file or .module.css"
+      - "Design tokens defined in tailwind.config.js"
+      - "Mobile-first responsive design"
+
+    file_structure:
+      - |
+        src/
+        ├── components/          # Reusable UI components
+        │   ├── ui/              # Base components (Button, Input, Modal)
+        │   └── features/        # Feature-specific components
+        ├── pages/               # Route pages
+        ├── hooks/               # Custom hooks
+        ├── store/               # Redux store, slices, RTK Query APIs
+        ├── services/            # API service definitions
+        ├── utils/               # Helper functions
+        ├── types/               # TypeScript interfaces/types
+        ├── constants/           # App constants
+        └── assets/              # Static assets
+
+    naming_conventions:
+      files:
+        components: "PascalCase.tsx"
+        hooks: "useCamelCase.ts"
+        utils: "camelCase.ts"
+        types: "camelCase.types.ts"
+        constants: "SCREAMING_SNAKE_CASE.ts"
+        tests: "ComponentName.test.tsx"
+      
+      variables:
+        components: "PascalCase"
+        functions: "camelCase"
+        constants: "SCREAMING_SNAKE_CASE"
+        interfaces: "IPascalCase or PascalCase"
+        types: "TPascalCase or PascalCase"
+        enums: "PascalCase with SCREAMING_SNAKE values"
+
+  # ---------------------------------------------------------------------------
+  # BACKEND RULES (NestJS/TypeScript)
+  # ---------------------------------------------------------------------------
+  backend:
+    architecture:
+      - "Follow NestJS modular architecture"
+      - "One module per domain entity (TestCaseModule, TestRunModule)"
+      - "Use dependency injection for all services"
+      - "Controllers handle HTTP only - no business logic"
+      - "Services contain business logic"
+      - "Repositories handle database operations"
+      - "Use DTOs for request/response validation"
+      - "Use entities for database models"
+
+    api_design:
+      - "RESTful API design principles"
+      - "Use proper HTTP methods (GET, POST, PUT, PATCH, DELETE)"
+      - "Use proper HTTP status codes"
+      - "Version APIs: /api/v1/..."
+      - "Use plural nouns for resources: /projects, /test-cases"
+      - "Nested resources max 2 levels: /projects/:id/test-cases"
+      - "Use query params for filtering, sorting, pagination"
+      - "Consistent error response format"
+
+    validation:
+      - "Use class-validator decorators on DTOs"
+      - "Validate all incoming data"
+      - "Sanitize user inputs"
+      - "Use Zod for complex validations"
+
+    file_structure:
+      - |
+        src/
+        ├── modules/
+        │   ├── auth/
+        │   │   ├── auth.module.ts
+        │   │   ├── auth.controller.ts
+        │   │   ├── auth.service.ts
+        │   │   ├── dto/
+        │   │   ├── entities/
+        │   │   └── guards/
+        │   ├── projects/
+        │   ├── test-cases/
+        │   ├── test-runs/
+        │   └── ...
+        ├── common/
+        │   ├── decorators/
+        │   ├── filters/
+        │   ├── guards/
+        │   ├── interceptors/
+        │   ├── pipes/
+        │   └── utils/
+        ├── config/
+        └── database/
+
+    error_handling:
+      - "Use NestJS exception filters"
+      - "Create custom exceptions extending HttpException"
+      - "Log all errors with context"
+      - "Never expose internal errors to client"
+      - "Use standard error response format:"
+      - |
+        {
+          "statusCode": 400,
+          "error": "Bad Request",
+          "message": "Validation failed",
+          "details": [...],
+          "timestamp": "2024-01-25T10:00:00Z",
+          "path": "/api/v1/test-cases"
+        }
+
+  # ---------------------------------------------------------------------------
+  # DATABASE RULES
+  # ---------------------------------------------------------------------------
+  database:
+    general:
+      - "Use TypeORM with PostgreSQL"
+      - "Always use migrations for schema changes"
+      - "Never modify production DB directly"
+      - "Use transactions for multi-table operations"
+      - "Index frequently queried columns"
+      - "Use soft deletes (deleted_at) for important entities"
+
+    naming:
+      - "Tables: snake_case, plural (test_cases, test_runs)"
+      - "Columns: snake_case (created_at, test_case_id)"
+      - "Primary keys: id (UUID)"
+      - "Foreign keys: entity_id (project_id, user_id)"
+      - "Indexes: idx_table_column"
+      - "Constraints: fk_table_reference, uq_table_column"
+
+    best_practices:
+      - "Use UUIDs for primary keys"
+      - "Always include created_at, updated_at timestamps"
+      - "Use JSONB for flexible schema fields"
+      - "Partition large tables (test_results)"
+      - "Use connection pooling (PgBouncer)"
+      - "Query only needed columns, avoid SELECT *"
+
+  # ---------------------------------------------------------------------------
+  # SECURITY RULES
+  # ---------------------------------------------------------------------------
+  security:
+    authentication:
+      - "Use JWT tokens (access + refresh)"
+      - "Access token expiry: 15 minutes"
+      - "Refresh token expiry: 7 days with rotation"
+      - "Store tokens in httpOnly, secure cookies"
+      - "Implement rate limiting on auth endpoints"
+      - "Use bcrypt with cost factor 12 for passwords"
+      - "Minimum password length: 12 characters"
+
+    authorization:
+      - "Implement RBAC (Role-Based Access Control)"
+      - "Check permissions on every request"
+      - "Use guards for route protection"
+      - "Validate resource ownership"
+      - "Log all authorization failures"
+
+    data_protection:
+      - "Encrypt sensitive data at rest (AES-256)"
+      - "Use TLS 1.3 for all connections"
+      - "Never log sensitive data (passwords, tokens)"
+      - "Sanitize all user inputs"
+      - "Use parameterized queries (prevent SQL injection)"
+      - "Implement CORS properly"
+      - "Set security headers (helmet.js)"
+
+    secrets:
+      - "Never commit secrets to git"
+      - "Use environment variables"
+      - "Use secrets manager in production"
+      - "Rotate API keys periodically"
+
+  # ---------------------------------------------------------------------------
+  # TESTING RULES
+  # ---------------------------------------------------------------------------
+  testing:
+    general:
+      - "Minimum 80% code coverage"
+      - "Write tests before fixing bugs"
+      - "Test edge cases and error scenarios"
+      - "Use meaningful test descriptions"
+      - "One assertion per test when possible"
+      - "Mock external dependencies"
+
+    frontend:
+      - "Unit tests for hooks and utils"
+      - "Component tests with React Testing Library"
+      - "Test user interactions, not implementation"
+      - "Use MSW for API mocking"
+      - "E2E tests with Playwright for critical flows"
+
+    backend:
+      - "Unit tests for services"
+      - "Integration tests for controllers"
+      - "Use test database for integration tests"
+      - "Test API contracts"
+      - "Load tests for performance-critical endpoints"
+
+    naming:
+      - "describe('ComponentName', () => {})"
+      - "it('should do something when condition', () => {})"
+      - "Test files: *.test.ts or *.spec.ts"
+
+  # ---------------------------------------------------------------------------
+  # GIT & VERSION CONTROL
+  # ---------------------------------------------------------------------------
+  git:
+    branches:
+      - "main - production ready code"
+      - "develop - integration branch"
+      - "feature/TICKET-description - new features"
+      - "bugfix/TICKET-description - bug fixes"
+      - "hotfix/TICKET-description - urgent production fixes"
+      - "release/vX.Y.Z - release preparation"
+
+    commits:
+      - "Use conventional commits format"
+      - "feat: add test case duplication feature"
+      - "fix: resolve pagination issue in test runs"
+      - "docs: update API documentation"
+      - "refactor: extract test execution logic"
+      - "test: add unit tests for TestCaseService"
+      - "chore: update dependencies"
+      - "Keep commits atomic and focused"
+      - "Write meaningful commit messages"
+
+    pull_requests:
+      - "Use PR template"
+      - "Link to ticket/issue"
+      - "Include screenshots for UI changes"
+      - "Request minimum 1 reviewer"
+      - "All CI checks must pass"
+      - "Squash commits on merge"
+
+  # ---------------------------------------------------------------------------
+  # DOCUMENTATION
+  # ---------------------------------------------------------------------------
+  documentation:
+    code:
+      - "JSDoc for all public functions and classes"
+      - "Inline comments for complex logic only"
+      - "README.md in each module"
+      - "Keep comments up to date with code"
+
+    api:
+      - "OpenAPI/Swagger specification"
+      - "Document all endpoints with examples"
+      - "Include error responses"
+      - "Versioned API docs"
+
+    project:
+      - "Architecture Decision Records (ADRs)"
+      - "Setup and deployment guides"
+      - "Contributing guidelines"
+      - "Changelog maintenance"
+
+# =============================================================================
+# DOMAIN-SPECIFIC RULES
+# =============================================================================
+domain:
+  entities:
+    project:
+      - "Multi-tenant isolation via project_id"
+      - "Soft delete with cascade considerations"
+      - "Settings stored as JSONB"
+
+    test_case:
+      - "Support multiple templates (steps, text, bdd, exploratory)"
+      - "Version history for all changes"
+      - "Steps stored as JSONB array"
+      - "Custom fields as JSONB"
+      - "Reference linking to external systems"
+
+    test_run:
+      - "Snapshot test case versions at creation"
+      - "Status enum: untested, passed, failed, blocked, retest, skipped"
+      - "Track execution time"
+      - "Support bulk operations"
+
+    test_result:
+      - "Immutable after creation (append-only)"
+      - "Partition by date for performance"
+      - "Index on test_run_id, status, executed_at"
+
+  business_logic:
+    - "Test case updates don't affect closed runs"
+    - "Deleting test case soft-deletes, warns about dependencies"
+    - "Milestone progress calculated from linked runs"
+    - "AI generation requires explicit user confirmation"
+    - "Defect push creates bidirectional link"
+
+  integrations:
+    jira:
+      - "Support Cloud, Server, Data Center"
+      - "OAuth 2.0 for Cloud, API token for Server"
+      - "Queue failed syncs for retry"
+      - "Map custom fields bidirectionally"
+
+    ci_cd:
+      - "Accept JUnit XML format"
+      - "Support parallel result uploads"
+      - "Idempotent result processing"
+      - "CLI tool for pipeline integration"
+
+# =============================================================================
+# PERFORMANCE GUIDELINES
+# =============================================================================
+performance:
+  frontend:
+    - "Lazy load routes and heavy components"
+    - "Virtualize long lists (TanStack Virtual)"
+    - "Debounce search inputs (300ms)"
+    - "Optimize images (WebP, lazy loading)"
+    - "Bundle size budget: <500KB initial JS"
+    - "First Contentful Paint: <1.5s"
+
+  backend:
+    - "API response time p95: <200ms"
+    - "Use pagination (default 25, max 100)"
+    - "Cache frequently accessed data"
+    - "Use database connection pooling"
+    - "Async processing for heavy operations"
+    - "Rate limiting: 100 req/min per user"
+
+  database:
+    - "Index all foreign keys"
+    - "Index commonly filtered columns"
+    - "Use EXPLAIN ANALYZE for slow queries"
+    - "Avoid N+1 queries"
+    - "Use materialized views for reports"
+
+# =============================================================================
+# AI SERVICE RULES (Python/FastAPI)
+# =============================================================================
+ai_service:
+  general:
+    - "Use FastAPI with Pydantic models"
+    - "Async handlers for all endpoints"
+    - "Type hints for all functions"
+    - "Use dependency injection"
+
+  ml_practices:
+    - "Version all models"
+    - "A/B testing for model improvements"
+    - "Monitor model performance metrics"
+    - "Implement fallback for model failures"
+    - "Rate limit AI endpoints separately"
+    - "Log all AI inputs/outputs for improvement"
+
+  file_structure:
+    - |
+      ai_service/
+      ├── app/
+      │   ├── main.py
+      │   ├── api/
+      │   │   ├── routes/
+      │   │   └── deps.py
+      │   ├── core/
+      │   │   ├── config.py
+      │   │   └── security.py
+      │   ├── models/
+      │   ├── schemas/
+      │   ├── services/
+      │   │   ├── test_generator.py
+      │   │   └── bdd_generator.py
+      │   └── utils/
+      ├── tests/
+      └── requirements.txt
+
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
+environments:
+  development:
+    - "Use Docker Compose for local setup"
+    - "Hot reload enabled"
+    - "Seed database with test data"
+    - "Mock external services"
+
+  staging:
+    - "Mirror production configuration"
+    - "Use anonymized production data"
+    - "Full integration testing"
+
+  production:
+    - "No debug modes"
+    - "Full monitoring and alerting"
+    - "Automated backups"
+    - "Blue-green deployments"
+
+# =============================================================================
+# FORBIDDEN PRACTICES
+# =============================================================================
+forbidden:
+  - "Never use 'any' type in TypeScript"
+  - "Never commit .env files or secrets"
+  - "Never use console.log in production code (use logger)"
+  - "Never store passwords in plain text"
+  - "Never trust user input without validation"
+  - "Never use synchronous file operations in Node.js"
+  - "Never expose stack traces to users"
+  - "Never use eval() or Function() constructor"
+  - "Never disable TypeScript strict mode"
+  - "Never skip code review for production changes"
+  - "Never hardcode configuration values"
+  - "Never use deprecated APIs"
+  - "Never ignore security warnings"
+  - "Never store sensitive data in localStorage"
+  - "Never use GET requests for mutations"
+
+# =============================================================================
+# CODE REVIEW CHECKLIST
+# =============================================================================
+code_review:
+  - "Does the code follow our coding standards?"
+  - "Are there appropriate tests?"
+  - "Is the code well-documented?"
+  - "Are there any security concerns?"
+  - "Is error handling appropriate?"
+  - "Are there any performance issues?"
+  - "Is the code DRY (Don't Repeat Yourself)?"
+  - "Are naming conventions followed?"
+  - "Is the PR scope appropriate (not too large)?"
+  - "Are database migrations reversible?"
+
+# =============================================================================
+# DEFINITION OF DONE
+# =============================================================================
+definition_of_done:
+  - "Code compiles without errors"
+  - "All tests pass"
+  - "Code coverage meets threshold (80%)"
+  - "No linting errors"
+  - "Code reviewed and approved"
+  - "Documentation updated"
+  - "Changelog updated (if applicable)"
+  - "Feature tested in staging"
+  - "Security review passed (if applicable)"
+  - "Performance acceptable"

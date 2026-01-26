@@ -13,6 +13,7 @@ import { TestSuitesModule } from './modules/test-suites/test-suites.module';
 import { MilestonesModule } from './modules/milestones/milestones.module';
 import { TestPlansModule } from './modules/test-plans/test-plans.module';
 import { RequirementsModule } from './modules/requirements/requirements.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { RequirementsModule } from './modules/requirements/requirements.module';
     MilestonesModule,
     TestPlansModule,
     RequirementsModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}
