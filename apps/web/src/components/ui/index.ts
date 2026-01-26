@@ -9,6 +9,7 @@ export {
   type AvatarFallbackProps,
 } from './Avatar';
 export { getInitials } from '@/utils/avatar';
+export { Badge, type BadgeProps } from './Badge';
 export { Button, type ButtonProps } from './Button';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export {
