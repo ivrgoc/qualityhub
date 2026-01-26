@@ -66,6 +66,14 @@ export {
 } from './DropdownMenu';
 export { Input, type InputProps } from './Input';
 export {
+  Pagination,
+  PaginationButton,
+  PaginationEllipsis,
+  type PaginationProps,
+  type PaginationButtonProps,
+  type PaginationEllipsisProps,
+} from './Pagination';
+export {
   Popover,
   PopoverTrigger,
   PopoverContent,
