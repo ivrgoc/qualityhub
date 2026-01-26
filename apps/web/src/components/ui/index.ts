@@ -1,3 +1,14 @@
+export {
+  Avatar,
+  AvatarRoot,
+  AvatarImage,
+  AvatarFallback,
+  type AvatarProps,
+  type AvatarRootProps,
+  type AvatarImageProps,
+  type AvatarFallbackProps,
+} from './Avatar';
+export { getInitials } from '@/utils/avatar';
 export { Button, type ButtonProps } from './Button';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export {
