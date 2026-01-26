@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     anthropic_max_tokens: int = Field(default=4096, ge=1, le=200000)
     anthropic_temperature: float = Field(default=0.7, ge=0.0, le=1.0)
 
+    # API Security
+    api_keys: List[str] = Field(default_factory=list, description="List of valid API keys")
+
     # Rate Limiting
     rate_limit_requests: int = Field(default=100, ge=1)
     rate_limit_window_seconds: int = Field(default=60, ge=1)
