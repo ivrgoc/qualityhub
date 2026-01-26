@@ -20,6 +20,7 @@ export { getInitials } from '@/utils/avatar';
 export { Badge, type BadgeProps } from './Badge';
 export { Button, type ButtonProps } from './Button';
 export { Checkbox, type CheckboxProps } from './Checkbox';
+export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
 export {
   Dialog,
   DialogPortal,
