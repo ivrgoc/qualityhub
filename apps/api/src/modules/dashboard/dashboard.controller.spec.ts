@@ -9,7 +9,13 @@ import {
   CoverageWidgetDto,
   DefectsWidgetDto,
   TrendsWidgetDto,
+  StatsDto,
+  ActivityDto,
+  TodoDto,
+  TodoItemType,
+  TodoPriority,
 } from './dto';
+import { TestStatus } from '../test-runs/entities/test-result.entity';
 
 describe('DashboardController', () => {
   let controller: DashboardController;
@@ -99,6 +105,88 @@ describe('DashboardController', () => {
     generatedAt: new Date('2024-01-15T10:30:00'),
   };
 
+  const mockStatsDto: StatsDto = {
+    totalTestCases: 100,
+    totalExecuted: 80,
+    passed: 60,
+    failed: 15,
+    blocked: 5,
+    remaining: 20,
+    passRate: 75,
+    executionProgress: 80,
+    totalTestRuns: 10,
+    activeTestRuns: 2,
+    completedTestRuns: 5,
+    totalRequirements: 25,
+    coveragePercentage: 80,
+    totalDefects: 5,
+    failedTestsWithDefects: 10,
+  };
+
+  const mockActivityDto: ActivityDto = {
+    totalToday: 50,
+    testsExecutedToday: 40,
+    passedToday: 35,
+    failedToday: 5,
+    recentActivity: [
+      {
+        id: 'act-1',
+        type: 'test_execution',
+        title: 'Login Test',
+        status: TestStatus.PASSED,
+        userId: 'user-1',
+        userName: 'John Doe',
+        timestamp: new Date('2024-01-15T10:00:00'),
+        entityId: 'case-1',
+        testRunId: 'run-1',
+      },
+      {
+        id: 'run-start-run-2',
+        type: 'test_run_started',
+        title: 'Regression Suite',
+        userId: 'user-2',
+        userName: 'Jane Doe',
+        timestamp: new Date('2024-01-15T09:00:00'),
+        entityId: 'run-2',
+      },
+    ],
+  };
+
+  const mockTodoDto: TodoDto = {
+    totalItems: 3,
+    urgentCount: 2,
+    items: [
+      {
+        id: 'milestone-overdue-1',
+        type: TodoItemType.OVERDUE_MILESTONE,
+        title: 'Release 1.0',
+        description: 'Milestone is overdue',
+        priority: TodoPriority.CRITICAL,
+        dueDate: new Date('2024-01-10'),
+        entityId: 'milestone-1',
+      },
+      {
+        id: 'run-1',
+        type: TodoItemType.ASSIGNED_TEST_RUN,
+        title: 'Regression Test',
+        description: 'Continue execution - 10 tests remaining',
+        priority: TodoPriority.HIGH,
+        entityId: 'run-1',
+        progress: 80,
+        remainingCount: 10,
+      },
+      {
+        id: 'failed-tests-review',
+        type: TodoItemType.FAILED_TEST_REVIEW,
+        title: 'Failed Tests Need Review',
+        description: '5 failed tests without linked defects',
+        priority: TodoPriority.MEDIUM,
+        entityId: 'proj-123',
+        remainingCount: 5,
+      },
+    ],
+  };
+
   beforeEach(async () => {
     const mockService = {
       getProjectDashboard: jest.fn(),
@@ -108,6 +196,9 @@ describe('DashboardController', () => {
       getCoverageWidget: jest.fn(),
       getDefectsWidget: jest.fn(),
       getTrendsWidget: jest.fn(),
+      getStats: jest.fn(),
+      getActivity: jest.fn(),
+      getTodo: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -237,6 +328,93 @@ describe('DashboardController', () => {
       await controller.getTrendsWidget('proj-123', '30');
 
       expect(service.getTrendsWidget).toHaveBeenCalledWith('proj-123', 30);
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return aggregated project statistics', async () => {
+      service.getStats.mockResolvedValue(mockStatsDto);
+
+      const result = await controller.getStats('proj-123');
+
+      expect(service.getStats).toHaveBeenCalledWith('proj-123');
+      expect(result).toEqual(mockStatsDto);
+      expect(result.totalTestCases).toBe(100);
+      expect(result.passRate).toBe(75);
+      expect(result.totalTestRuns).toBe(10);
+      expect(result.coveragePercentage).toBe(80);
+      expect(result.totalDefects).toBe(5);
+    });
+  });
+
+  describe('getActivity', () => {
+    it('should return activity feed with default limit', async () => {
+      service.getActivity.mockResolvedValue(mockActivityDto);
+
+      const result = await controller.getActivity('proj-123');
+
+      expect(service.getActivity).toHaveBeenCalledWith('proj-123', 20);
+      expect(result).toEqual(mockActivityDto);
+      expect(result.totalToday).toBe(50);
+      expect(result.testsExecutedToday).toBe(40);
+      expect(result.recentActivity).toHaveLength(2);
+    });
+
+    it('should return activity feed with custom limit', async () => {
+      const limitedActivity = { ...mockActivityDto, recentActivity: [mockActivityDto.recentActivity[0]] };
+      service.getActivity.mockResolvedValue(limitedActivity);
+
+      const result = await controller.getActivity('proj-123', '10');
+
+      expect(service.getActivity).toHaveBeenCalledWith('proj-123', 10);
+      expect(result.recentActivity).toHaveLength(1);
+    });
+
+    it('should parse string limit to number', async () => {
+      service.getActivity.mockResolvedValue(mockActivityDto);
+
+      await controller.getActivity('proj-123', '50');
+
+      expect(service.getActivity).toHaveBeenCalledWith('proj-123', 50);
+    });
+  });
+
+  describe('getTodo', () => {
+    it('should return todo items without userId filter', async () => {
+      service.getTodo.mockResolvedValue(mockTodoDto);
+
+      const result = await controller.getTodo('proj-123');
+
+      expect(service.getTodo).toHaveBeenCalledWith('proj-123', undefined);
+      expect(result).toEqual(mockTodoDto);
+      expect(result.totalItems).toBe(3);
+      expect(result.urgentCount).toBe(2);
+      expect(result.items).toHaveLength(3);
+    });
+
+    it('should return todo items with userId filter', async () => {
+      const filteredTodo: TodoDto = {
+        totalItems: 1,
+        urgentCount: 1,
+        items: [mockTodoDto.items[1]],
+      };
+      service.getTodo.mockResolvedValue(filteredTodo);
+
+      const result = await controller.getTodo('proj-123', 'user-123');
+
+      expect(service.getTodo).toHaveBeenCalledWith('proj-123', 'user-123');
+      expect(result.totalItems).toBe(1);
+      expect(result.items).toHaveLength(1);
+    });
+
+    it('should return items sorted by priority', async () => {
+      service.getTodo.mockResolvedValue(mockTodoDto);
+
+      const result = await controller.getTodo('proj-123');
+
+      expect(result.items[0].priority).toBe(TodoPriority.CRITICAL);
+      expect(result.items[1].priority).toBe(TodoPriority.HIGH);
+      expect(result.items[2].priority).toBe(TodoPriority.MEDIUM);
     });
   });
 });
