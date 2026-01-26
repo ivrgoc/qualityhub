@@ -5,6 +5,7 @@ export {
   jwtConfig as typedJwtConfig,
   redisConfig,
   appConfig,
+  storageConfig,
   default as configuration,
 } from './configuration';
 export type {
@@ -12,5 +13,6 @@ export type {
   JwtConfig,
   RedisConfig,
   AppConfig,
+  StorageConfig,
   Configuration,
 } from './configuration';

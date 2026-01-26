@@ -32,11 +32,26 @@ export interface AppConfig {
   isDevelopment: boolean;
 }
 
+export interface StorageConfig {
+  type: 'local' | 's3';
+  local: {
+    uploadDir: string;
+  };
+  s3: {
+    bucket: string;
+    region: string;
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    endpoint?: string;
+  };
+}
+
 export interface Configuration {
   database: DatabaseConfig;
   jwt: JwtConfig;
   redis: RedisConfig;
   app: AppConfig;
+  storage: StorageConfig;
 }
 
 export const databaseConfig = registerAs(
@@ -89,9 +104,27 @@ export const appConfig = registerAs(
   }),
 );
 
+export const storageConfig = registerAs(
+  'storage',
+  (): StorageConfig => ({
+    type: (process.env.STORAGE_TYPE as 'local' | 's3') || 'local',
+    local: {
+      uploadDir: process.env.UPLOAD_DIR || './uploads',
+    },
+    s3: {
+      bucket: process.env.AWS_S3_BUCKET || '',
+      region: process.env.AWS_REGION || 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      endpoint: process.env.AWS_S3_ENDPOINT,
+    },
+  }),
+);
+
 export default (): Configuration => ({
   database: databaseConfig(),
   jwt: jwtConfig(),
   redis: redisConfig(),
   app: appConfig(),
+  storage: storageConfig(),
 });

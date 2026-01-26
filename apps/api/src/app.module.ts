@@ -1,7 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { databaseConfig, jwtConfig, typeOrmAsyncConfig } from './config';
+import {
+  databaseConfig,
+  jwtConfig,
+  storageConfig,
+  typeOrmAsyncConfig,
+} from './config';
+import { StorageModule } from './modules/attachments/providers';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -21,9 +27,10 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [databaseConfig, jwtConfig],
+      load: [databaseConfig, jwtConfig, storageConfig],
     }),
     TypeOrmModule.forRootAsync(typeOrmAsyncConfig),
+    StorageModule.forRootAsync(),
     HealthModule,
     AuthModule,
     UsersModule,
