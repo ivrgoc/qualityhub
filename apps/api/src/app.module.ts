@@ -20,6 +20,7 @@ import { MilestonesModule } from './modules/milestones/milestones.module';
 import { TestPlansModule } from './modules/test-plans/test-plans.module';
 import { RequirementsModule } from './modules/requirements/requirements.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 
 @Module({
@@ -43,6 +44,7 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
     TestPlansModule,
     RequirementsModule,
     ReportsModule,
+    DashboardModule,
     AttachmentsModule,
   ],
 })
