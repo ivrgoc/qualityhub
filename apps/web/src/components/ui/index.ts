@@ -18,6 +18,32 @@ export {
   type DialogTitleProps,
   type DialogDescriptionProps,
 } from './Dialog';
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+  type DropdownMenuContentProps,
+  type DropdownMenuItemProps,
+  type DropdownMenuCheckboxItemProps,
+  type DropdownMenuRadioItemProps,
+  type DropdownMenuLabelProps,
+  type DropdownMenuSeparatorProps,
+  type DropdownMenuShortcutProps,
+  type DropdownMenuSubTriggerProps,
+  type DropdownMenuSubContentProps,
+} from './DropdownMenu';
 export { Input, type InputProps } from './Input';
 export {
   Select,
