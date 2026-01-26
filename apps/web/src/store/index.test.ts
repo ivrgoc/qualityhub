@@ -19,6 +19,29 @@ describe('store', () => {
       expect(state.auth).toEqual({
         user: null,
         isAuthenticated: false,
+        accessToken: null,
+        isLoading: false,
+        error: null,
+      });
+    });
+
+    it('should have ui reducer configured', () => {
+      const state = store.getState();
+      expect(state).toHaveProperty('ui');
+      expect(state.ui).toEqual({
+        sidebar: {
+          isOpen: true,
+          isCollapsed: false,
+        },
+        modal: {
+          isOpen: false,
+          activeModal: null,
+          modalStack: [],
+        },
+        theme: {
+          current: 'system',
+          systemPreference: 'light',
+        },
       });
     });
 

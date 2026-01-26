@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import type { ReactNode } from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { useAppDispatch, useAppSelector } from './hooks';
-import { authReducer, setUser, clearUser } from './slices';
+import { authReducer, uiReducer, setUser, clearUser } from './slices';
 import { baseApi } from './api/baseApi';
 import { UserRole } from '@/types';
 
@@ -14,6 +14,7 @@ function createTestStore() {
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
       auth: authReducer,
+      ui: uiReducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
@@ -101,6 +102,9 @@ describe('hooks', () => {
       expect(result.current).toEqual({
         user: null,
         isAuthenticated: false,
+        accessToken: null,
+        isLoading: false,
+        error: null,
       });
     });
 

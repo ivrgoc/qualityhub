@@ -1,12 +1,13 @@
 import { configureStore, type Middleware } from '@reduxjs/toolkit';
 import { baseApi } from './api/baseApi';
-import { authReducer } from './slices';
+import { authReducer, uiReducer } from './slices';
 
 // Configure the Redux store with RTK Query middleware
 export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
     auth: authReducer,
+    ui: uiReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

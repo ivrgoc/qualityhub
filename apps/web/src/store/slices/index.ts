@@ -15,3 +15,29 @@ export {
   selectAuthError,
 } from './authSlice';
 export type { AuthState, SetCredentialsPayload } from './authSlice';
+
+export {
+  default as uiReducer,
+  toggleSidebar,
+  setSidebarOpen,
+  toggleSidebarCollapsed,
+  setSidebarCollapsed,
+  openModal,
+  closeModal,
+  closeAllModals,
+  closeModalById,
+  setTheme,
+  setSystemPreference,
+  toggleTheme,
+  selectSidebarOpen,
+  selectSidebarCollapsed,
+  selectSidebar,
+  selectModalOpen,
+  selectActiveModal,
+  selectModalStack,
+  selectModal,
+  selectTheme,
+  selectSystemPreference,
+  selectEffectiveTheme,
+} from './uiSlice';
+export type { UIState, ModalConfig, Theme } from './uiSlice';
