@@ -76,6 +76,7 @@ export {
   type PopoverContentProps,
   type PopoverArrowProps,
 } from './Popover';
+export { Progress, type ProgressProps } from './Progress';
 export {
   Select,
   SelectContent,
