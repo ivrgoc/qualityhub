@@ -35,6 +35,27 @@ describe('Button', () => {
     expect(button).toHaveClass('bg-destructive');
   });
 
+  it('should apply secondary variant styles', () => {
+    render(<Button variant="secondary">Secondary</Button>);
+    const button = screen.getByRole('button');
+    expect(button).toHaveClass('bg-secondary');
+  });
+
+  it('should apply ghost variant styles', () => {
+    render(<Button variant="ghost">Ghost</Button>);
+    const button = screen.getByRole('button');
+    expect(button).toHaveClass('hover:bg-accent');
+    expect(button).not.toHaveClass('bg-primary');
+    expect(button).not.toHaveClass('border');
+  });
+
+  it('should apply link variant styles', () => {
+    render(<Button variant="link">Link</Button>);
+    const button = screen.getByRole('button');
+    expect(button).toHaveClass('text-primary');
+    expect(button).toHaveClass('underline-offset-4');
+  });
+
   it('should apply size classes', () => {
     render(<Button size="sm">Small</Button>);
     const button = screen.getByRole('button');
