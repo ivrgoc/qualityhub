@@ -39,6 +39,16 @@ export {
   type DialogDescriptionProps,
 } from './Dialog';
 export {
+  EmptyState,
+  EmptyStateTitle,
+  EmptyStateDescription,
+  EmptyStateAction,
+  type EmptyStateProps,
+  type EmptyStateTitleProps,
+  type EmptyStateDescriptionProps,
+  type EmptyStateActionProps,
+} from './EmptyState';
+export {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
