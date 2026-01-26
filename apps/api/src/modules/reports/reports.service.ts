@@ -16,11 +16,15 @@ import {
   ReportType,
 } from './dto';
 import { PdfGeneratorService } from './pdf-generator.service';
+import { ExcelGeneratorService } from './excel-generator.service';
 
-export interface PdfExportResult {
+export interface ExportResult {
   stream: PassThrough;
   filename: string;
 }
+
+export type PdfExportResult = ExportResult;
+export type ExcelExportResult = ExportResult;
 
 @Injectable()
 export class ReportsService {
@@ -36,6 +40,7 @@ export class ReportsService {
     @InjectRepository(RequirementCoverage)
     private readonly coverageRepository: Repository<RequirementCoverage>,
     private readonly pdfGenerator: PdfGeneratorService,
+    private readonly excelGenerator: ExcelGeneratorService,
   ) {}
 
   // ============ Public API Methods ============
@@ -78,6 +83,38 @@ export class ReportsService {
       case ReportType.TRENDS: {
         const data = await this.getTrends(projectId, startDate, endDate);
         return this.pdfGenerator.generateTrendsPdf(data);
+      }
+      default:
+        throw new Error(`Unknown report type: ${reportType}`);
+    }
+  }
+
+  async exportExcel(
+    projectId: string,
+    reportType: ReportType,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<ExcelExportResult> {
+    switch (reportType) {
+      case ReportType.SUMMARY: {
+        const data = await this.getProjectSummary(projectId);
+        return this.excelGenerator.generateSummaryExcel(data);
+      }
+      case ReportType.COVERAGE: {
+        const data = await this.getCoverageReport(projectId);
+        return this.excelGenerator.generateCoverageExcel(data);
+      }
+      case ReportType.DEFECTS: {
+        const data = await this.getDefectsReport(projectId);
+        return this.excelGenerator.generateDefectsExcel(data);
+      }
+      case ReportType.ACTIVITY: {
+        const data = await this.getActivityReport(projectId, startDate, endDate);
+        return this.excelGenerator.generateActivityExcel(data);
+      }
+      case ReportType.TRENDS: {
+        const data = await this.getTrends(projectId, startDate, endDate);
+        return this.excelGenerator.generateTrendsExcel(data);
       }
       default:
         throw new Error(`Unknown report type: ${reportType}`);

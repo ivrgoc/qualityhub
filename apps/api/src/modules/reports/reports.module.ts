@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
 import { PdfGeneratorService } from './pdf-generator.service';
+import { ExcelGeneratorService } from './excel-generator.service';
 import { TestRun } from '../test-runs/entities/test-run.entity';
 import { TestResult } from '../test-runs/entities/test-result.entity';
 import { TestCase } from '../test-cases/entities/test-case.entity';
@@ -20,7 +21,7 @@ import { RequirementCoverage } from '../requirements/entities/requirement-covera
     ]),
   ],
   controllers: [ReportsController],
-  providers: [ReportsService, PdfGeneratorService],
+  providers: [ReportsService, PdfGeneratorService, ExcelGeneratorService],
   exports: [ReportsService],
 })
 export class ReportsModule {}

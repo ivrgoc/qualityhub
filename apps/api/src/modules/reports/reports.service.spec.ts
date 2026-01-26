@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PassThrough } from 'stream';
 import { ReportsService } from './reports.service';
 import { PdfGeneratorService } from './pdf-generator.service';
+import { ExcelGeneratorService } from './excel-generator.service';
 import { ReportType } from './dto';
 import { TestRun, TestRunStatus } from '../test-runs/entities/test-run.entity';
 import { TestResult, TestStatus } from '../test-runs/entities/test-result.entity';
@@ -57,6 +58,14 @@ describe('ReportsService', () => {
     generateTrendsPdf: jest.fn(),
   };
 
+  const mockExcelGeneratorService = {
+    generateSummaryExcel: jest.fn(),
+    generateCoverageExcel: jest.fn(),
+    generateDefectsExcel: jest.fn(),
+    generateActivityExcel: jest.fn(),
+    generateTrendsExcel: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -64,6 +73,10 @@ describe('ReportsService', () => {
         {
           provide: PdfGeneratorService,
           useValue: mockPdfGeneratorService,
+        },
+        {
+          provide: ExcelGeneratorService,
+          useValue: mockExcelGeneratorService,
         },
         {
           provide: getRepositoryToken(TestRun),

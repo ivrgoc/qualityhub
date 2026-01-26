@@ -168,4 +168,41 @@ export class ReportsController {
 
     return new StreamableFile(stream);
   }
+
+  @Get('export/excel')
+  @ApiOperation({ summary: 'Export report as Excel' })
+  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  @ApiOkResponse({
+    description: 'Excel file download',
+    content: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  async exportExcel(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query() query: ExportReportQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const startDate = query.startDate ? new Date(query.startDate) : undefined;
+    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+
+    const { stream, filename } = await this.reportsService.exportExcel(
+      projectId,
+      query.type,
+      startDate,
+      endDate,
+    );
+
+    res.set({
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+
+    return new StreamableFile(stream);
+  }
 }
