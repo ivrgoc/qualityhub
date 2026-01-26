@@ -1,6 +1,6 @@
-import { type FC } from 'react';
+import { type FC, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, Settings, Bell } from 'lucide-react';
+import { LogOut, User, Settings } from 'lucide-react';
 import {
   Avatar,
   Button,
@@ -11,26 +11,86 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui';
+import {
+  Breadcrumbs,
+  SearchInput,
+  NotificationsPopover,
+  type Notification,
+} from '@/components/features/header';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectUser, clearCredentials } from '@/store/slices/authSlice';
 import { cn } from '@/utils/cn';
+
+// Mock notifications for demonstration - in production this would come from API/Redux
+const mockNotifications: Notification[] = [
+  {
+    id: '1',
+    type: 'success',
+    title: 'Test run completed',
+    message: 'Sprint 23 regression tests completed with 98% pass rate.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    read: false,
+    href: '/test-runs/1',
+  },
+  {
+    id: '2',
+    type: 'warning',
+    title: 'New defect assigned',
+    message: 'DEF-1234: Login button not working on Safari has been assigned to you.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    read: false,
+    href: '/defects/1234',
+  },
+  {
+    id: '3',
+    type: 'info',
+    title: 'Project milestone approaching',
+    message: 'Release v2.5 milestone is due in 3 days.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    read: true,
+    href: '/milestones/1',
+  },
+];
 
 export interface HeaderProps {
   className?: string;
 }
 
 /**
- * Header component with user menu and notifications for the dashboard layout.
+ * Header component with breadcrumbs, search, notifications, and user menu
+ * for the dashboard layout.
  */
 export const Header: FC<HeaderProps> = ({ className }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector(selectUser);
 
+  // Local state for notifications - in production this would be in Redux
+  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+
   const handleLogout = (): void => {
     dispatch(clearCredentials());
     navigate('/login');
   };
+
+  const handleSearch = useCallback((query: string): void => {
+    // Navigate to search results page
+    navigate(`/search?q=${encodeURIComponent(query)}`);
+  }, [navigate]);
+
+  const handleMarkNotificationAsRead = useCallback((id: string): void => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  }, []);
+
+  const handleMarkAllNotificationsAsRead = useCallback((): void => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, []);
+
+  const handleDismissNotification = useCallback((id: string): void => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   return (
     <header
@@ -39,18 +99,26 @@ export const Header: FC<HeaderProps> = ({ className }) => {
         className
       )}
     >
-      {/* Left side - can be used for breadcrumbs or page title */}
+      {/* Left side - breadcrumbs */}
       <div className="flex items-center gap-4">
-        {/* Placeholder for breadcrumbs - can be extended later */}
+        <Breadcrumbs />
       </div>
 
-      {/* Right side - notifications and user menu */}
-      <div className="flex items-center gap-4">
-        {/* Notifications button */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notifications</span>
-        </Button>
+      {/* Right side - search, notifications, and user menu */}
+      <div className="flex items-center gap-2">
+        {/* Search input */}
+        <SearchInput
+          placeholder="Search tests, projects..."
+          onSearch={handleSearch}
+        />
+
+        {/* Notifications popover */}
+        <NotificationsPopover
+          notifications={notifications}
+          onMarkAsRead={handleMarkNotificationAsRead}
+          onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+          onDismiss={handleDismissNotification}
+        />
 
         {/* User dropdown menu */}
         <DropdownMenu>
