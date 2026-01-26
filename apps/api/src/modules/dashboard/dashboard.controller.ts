@@ -15,6 +15,9 @@ import {
   CoverageWidgetDto,
   DefectsWidgetDto,
   TrendsWidgetDto,
+  StatsDto,
+  ActivityDto,
+  TodoDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -116,5 +119,58 @@ export class DashboardController {
   ): Promise<TrendsWidgetDto> {
     const days = periodDays ? parseInt(periodDays, 10) : 7;
     return this.dashboardService.getTrendsWidget(projectId, days);
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get aggregated project statistics' })
+  @ApiOkResponse({
+    description: 'Aggregated statistics including test execution, runs, coverage, and defects',
+    type: StatsDto,
+  })
+  async getStats(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ): Promise<StatsDto> {
+    return this.dashboardService.getStats(projectId);
+  }
+
+  @Get('activity')
+  @ApiOperation({ summary: 'Get project activity feed' })
+  @ApiOkResponse({
+    description: 'Recent activity including test executions, run status changes, and milestone completions',
+    type: ActivityDto,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Maximum number of activity items to return (default: 20)',
+    example: 20,
+  })
+  async getActivity(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query('limit') limit?: string,
+  ): Promise<ActivityDto> {
+    const activityLimit = limit ? parseInt(limit, 10) : 20;
+    return this.dashboardService.getActivity(projectId, activityLimit);
+  }
+
+  @Get('todo')
+  @ApiOperation({ summary: 'Get todo items for the project' })
+  @ApiOkResponse({
+    description: 'Todo items including assigned test runs, overdue milestones, blocked tests, and failed tests needing review',
+    type: TodoDto,
+  })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    type: String,
+    description: 'Filter todo items by user ID (optional)',
+    example: 'user-123',
+  })
+  async getTodo(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query('userId') userId?: string,
+  ): Promise<TodoDto> {
+    return this.dashboardService.getTodo(projectId, userId);
   }
 }

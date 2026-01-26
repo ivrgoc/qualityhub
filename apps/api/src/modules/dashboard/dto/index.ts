@@ -5,3 +5,6 @@ export * from './coverage-widget.dto';
 export * from './defects-widget.dto';
 export * from './trends-widget.dto';
 export * from './project-dashboard.dto';
+export * from './stats.dto';
+export * from './activity.dto';
+export * from './todo.dto';

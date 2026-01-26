@@ -7,6 +7,8 @@ import { TestResult } from '../test-runs/entities/test-result.entity';
 import { TestCase } from '../test-cases/entities/test-case.entity';
 import { Requirement } from '../requirements/entities/requirement.entity';
 import { RequirementCoverage } from '../requirements/entities/requirement-coverage.entity';
+import { Milestone } from '../milestones/entities/milestone.entity';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { RequirementCoverage } from '../requirements/entities/requirement-covera
       TestCase,
       Requirement,
       RequirementCoverage,
+      Milestone,
+      User,
     ]),
   ],
   controllers: [DashboardController],

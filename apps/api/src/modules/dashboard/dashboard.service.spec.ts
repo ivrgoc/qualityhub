@@ -7,6 +7,9 @@ import { TestResult, TestStatus } from '../test-runs/entities/test-result.entity
 import { TestCase } from '../test-cases/entities/test-case.entity';
 import { Requirement } from '../requirements/entities/requirement.entity';
 import { RequirementCoverage } from '../requirements/entities/requirement-coverage.entity';
+import { Milestone } from '../milestones/entities/milestone.entity';
+import { User } from '../users/entities/user.entity';
+import { TodoItemType, TodoPriority } from './dto';
 
 describe('DashboardService', () => {
   let service: DashboardService;
@@ -18,7 +21,10 @@ describe('DashboardService', () => {
     select: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
     groupBy: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
     getRawMany: jest.fn(),
   };
 
@@ -44,6 +50,20 @@ describe('DashboardService', () => {
     groupBy: jest.fn().mockReturnThis(),
     getRawMany: jest.fn(),
     getRawOne: jest.fn(),
+  };
+
+  const mockMilestoneQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    getMany: jest.fn(),
+    getRawMany: jest.fn(),
+  };
+
+  const mockUserRepository = {
+    find: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -81,6 +101,16 @@ describe('DashboardService', () => {
           useValue: {
             createQueryBuilder: jest.fn().mockReturnValue(mockCoverageQueryBuilder),
           },
+        },
+        {
+          provide: getRepositoryToken(Milestone),
+          useValue: {
+            createQueryBuilder: jest.fn().mockReturnValue(mockMilestoneQueryBuilder),
+          },
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: mockUserRepository,
         },
       ],
     }).compile();
@@ -505,6 +535,439 @@ describe('DashboardService', () => {
       expect(result.defects).toBeDefined();
       expect(result.trends).toBeDefined();
       expect(result.generatedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  // ============ Stats Method ============
+
+  describe('getStats', () => {
+    it('should return aggregated statistics from all widgets', async () => {
+      // Mock test execution widget dependencies
+      testCaseRepository.count.mockResolvedValue(100);
+      testRunRepository.count.mockResolvedValue(5);
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([
+        { status: TestStatus.PASSED, count: '60' },
+        { status: TestStatus.FAILED, count: '15' },
+        { status: TestStatus.BLOCKED, count: '5' },
+        { status: TestStatus.UNTESTED, count: '20' },
+      ]);
+
+      // Mock test runs widget dependencies
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([
+        { status: TestRunStatus.COMPLETED, count: '3' },
+        { status: TestRunStatus.IN_PROGRESS, count: '2' },
+      ]);
+      testRunRepository.find.mockResolvedValue([]);
+
+      // Mock coverage widget dependencies
+      requirementRepository.find.mockResolvedValue([
+        { id: 'req-1' },
+        { id: 'req-2' },
+        { id: 'req-3' },
+        { id: 'req-4' },
+      ] as Requirement[]);
+      mockCoverageQueryBuilder.getRawOne.mockResolvedValue({
+        coveredCount: '3',
+        linkedCount: '10',
+      });
+
+      // Mock defects widget dependencies
+      mockTestResultQueryBuilder.getMany.mockResolvedValue([
+        { id: 'r1', status: TestStatus.FAILED, defects: ['DEF-1'], testCaseId: 'c1' },
+        { id: 'r2', status: TestStatus.FAILED, defects: ['DEF-2'], testCaseId: 'c2' },
+      ] as TestResult[]);
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(15);
+
+      const result = await service.getStats('proj-123');
+
+      expect(result.totalTestCases).toBe(100);
+      expect(result.totalExecuted).toBe(80);
+      expect(result.passed).toBe(60);
+      expect(result.failed).toBe(15);
+      expect(result.blocked).toBe(5);
+      expect(result.remaining).toBe(20);
+      expect(result.passRate).toBe(75);
+      expect(result.executionProgress).toBe(80);
+      expect(result.totalTestRuns).toBe(5);
+      expect(result.activeTestRuns).toBe(2);
+      expect(result.completedTestRuns).toBe(3);
+      expect(result.totalRequirements).toBe(4);
+      expect(result.coveragePercentage).toBe(75);
+      expect(result.totalDefects).toBe(2);
+      expect(result.failedTestsWithDefects).toBe(2);
+    });
+
+    it('should return zeros when no data exists', async () => {
+      testCaseRepository.count.mockResolvedValue(0);
+      testRunRepository.count.mockResolvedValue(0);
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([]);
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([]);
+      testRunRepository.find.mockResolvedValue([]);
+      requirementRepository.find.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getMany.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      const result = await service.getStats('proj-123');
+
+      expect(result.totalTestCases).toBe(0);
+      expect(result.totalExecuted).toBe(0);
+      expect(result.passRate).toBe(0);
+      expect(result.totalTestRuns).toBe(0);
+      expect(result.totalRequirements).toBe(0);
+      expect(result.totalDefects).toBe(0);
+    });
+  });
+
+  // ============ Activity Method ============
+
+  describe('getActivity', () => {
+    it('should return activity with today stats and recent items', async () => {
+      // Mock today's test results
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([
+          { status: TestStatus.PASSED, count: '30' },
+          { status: TestStatus.FAILED, count: '5' },
+        ])
+        .mockResolvedValueOnce([
+          {
+            result_id: 'result-1',
+            result_testCaseId: 'case-1',
+            testCase_title: 'Login Test',
+            result_status: TestStatus.PASSED,
+            result_executedBy: 'user-1',
+            result_executedAt: new Date('2024-01-15T10:00:00'),
+            testRun_id: 'run-1',
+          },
+        ]);
+
+      // Mock user lookup
+      mockUserRepository.find.mockResolvedValue([
+        { id: 'user-1', name: 'John Doe' },
+      ]);
+
+      // Mock recent test runs
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([
+        {
+          run_id: 'run-1',
+          run_name: 'Regression Suite',
+          run_status: TestRunStatus.IN_PROGRESS,
+          run_assigneeId: 'user-1',
+          run_startedAt: new Date('2024-01-15T09:00:00'),
+          run_completedAt: null,
+        },
+      ]);
+
+      // Mock recent milestones
+      mockMilestoneQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await service.getActivity('proj-123', 20);
+
+      expect(result.testsExecutedToday).toBe(35);
+      expect(result.passedToday).toBe(30);
+      expect(result.failedToday).toBe(5);
+      expect(result.recentActivity.length).toBeGreaterThan(0);
+
+      const testExecution = result.recentActivity.find((a) => a.type === 'test_execution');
+      expect(testExecution).toBeDefined();
+      expect(testExecution?.title).toBe('Login Test');
+      expect(testExecution?.userName).toBe('John Doe');
+    });
+
+    it('should return empty activity when no data exists', async () => {
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([]);
+      mockMilestoneQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await service.getActivity('proj-123');
+
+      expect(result.totalToday).toBe(0);
+      expect(result.testsExecutedToday).toBe(0);
+      expect(result.passedToday).toBe(0);
+      expect(result.failedToday).toBe(0);
+      expect(result.recentActivity).toEqual([]);
+    });
+
+    it('should include milestone completions in activity', async () => {
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([]);
+      mockMilestoneQueryBuilder.getRawMany.mockResolvedValue([
+        {
+          milestone_id: 'milestone-1',
+          milestone_name: 'Release 1.0',
+          milestone_updatedAt: new Date('2024-01-15T12:00:00'),
+        },
+      ]);
+
+      const result = await service.getActivity('proj-123');
+
+      const milestoneActivity = result.recentActivity.find((a) => a.type === 'milestone_completed');
+      expect(milestoneActivity).toBeDefined();
+      expect(milestoneActivity?.title).toBe('Release 1.0');
+    });
+
+    it('should respect the limit parameter', async () => {
+      const executions = Array.from({ length: 30 }, (_, i) => ({
+        result_id: `result-${i}`,
+        result_testCaseId: `case-${i}`,
+        testCase_title: `Test ${i}`,
+        result_status: TestStatus.PASSED,
+        result_executedBy: 'user-1',
+        result_executedAt: new Date(Date.now() - i * 60000),
+        testRun_id: 'run-1',
+      }));
+
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(executions);
+      mockUserRepository.find.mockResolvedValue([]);
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([]);
+      mockMilestoneQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await service.getActivity('proj-123', 10);
+
+      expect(result.recentActivity.length).toBeLessThanOrEqual(10);
+    });
+  });
+
+  // ============ Todo Method ============
+
+  describe('getTodo', () => {
+    it('should return assigned test runs as todo items', async () => {
+      const assignedRuns: Partial<TestRun>[] = [
+        {
+          id: 'run-1',
+          name: 'Regression Test',
+          status: TestRunStatus.IN_PROGRESS,
+          startedAt: new Date('2024-01-15'),
+        },
+      ];
+
+      mockTestRunQueryBuilder.getRawMany = undefined;
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(assignedRuns),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([
+        { runId: 'run-1', total: '50', executed: '25' },
+      ]);
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      mockMilestoneQueryBuilder.getMany.mockResolvedValue([]);
+
+      const result = await service.getTodo('proj-123');
+
+      expect(result.items.length).toBeGreaterThan(0);
+      const runTodo = result.items.find((i) => i.type === TodoItemType.ASSIGNED_TEST_RUN);
+      expect(runTodo).toBeDefined();
+      expect(runTodo?.title).toBe('Regression Test');
+      expect(runTodo?.progress).toBe(50);
+      expect(runTodo?.remainingCount).toBe(25);
+      expect(runTodo?.priority).toBe(TodoPriority.HIGH);
+    });
+
+    it('should return overdue milestones with critical priority', async () => {
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      mockMilestoneQueryBuilder.getMany
+        .mockResolvedValueOnce([
+          {
+            id: 'milestone-1',
+            name: 'Overdue Release',
+            dueDate: yesterday,
+          },
+        ])
+        .mockResolvedValueOnce([]);
+
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      const result = await service.getTodo('proj-123');
+
+      const overdueMilestone = result.items.find((i) => i.type === TodoItemType.OVERDUE_MILESTONE);
+      expect(overdueMilestone).toBeDefined();
+      expect(overdueMilestone?.priority).toBe(TodoPriority.CRITICAL);
+      expect(result.urgentCount).toBeGreaterThan(0);
+    });
+
+    it('should return upcoming milestones with appropriate priority', async () => {
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      const inTwoDays = new Date();
+      inTwoDays.setDate(inTwoDays.getDate() + 2);
+
+      mockMilestoneQueryBuilder.getMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'milestone-2',
+            name: 'Upcoming Release',
+            dueDate: inTwoDays,
+          },
+        ]);
+
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      const result = await service.getTodo('proj-123');
+
+      const upcomingMilestone = result.items.find((i) => i.type === TodoItemType.UPCOMING_MILESTONE);
+      expect(upcomingMilestone).toBeDefined();
+      expect(upcomingMilestone?.priority).toBe(TodoPriority.HIGH);
+    });
+
+    it('should return blocked tests as todo items', async () => {
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      mockMilestoneQueryBuilder.getMany.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getCount
+        .mockResolvedValueOnce(5) // blocked tests
+        .mockResolvedValueOnce(0); // failed tests without defects
+
+      const result = await service.getTodo('proj-123');
+
+      const blockedTodo = result.items.find((i) => i.type === TodoItemType.BLOCKED_TEST);
+      expect(blockedTodo).toBeDefined();
+      expect(blockedTodo?.remainingCount).toBe(5);
+      expect(blockedTodo?.priority).toBe(TodoPriority.HIGH);
+    });
+
+    it('should return failed tests needing review as todo items', async () => {
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      mockMilestoneQueryBuilder.getMany.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getCount
+        .mockResolvedValueOnce(0) // blocked tests
+        .mockResolvedValueOnce(8); // failed tests without defects
+
+      const result = await service.getTodo('proj-123');
+
+      const reviewTodo = result.items.find((i) => i.type === TodoItemType.FAILED_TEST_REVIEW);
+      expect(reviewTodo).toBeDefined();
+      expect(reviewTodo?.remainingCount).toBe(8);
+      expect(reviewTodo?.priority).toBe(TodoPriority.MEDIUM);
+    });
+
+    it('should return empty todo list when no items exist', async () => {
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      mockMilestoneQueryBuilder.getMany.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      const result = await service.getTodo('proj-123');
+
+      expect(result.totalItems).toBe(0);
+      expect(result.urgentCount).toBe(0);
+      expect(result.items).toEqual([]);
+    });
+
+    it('should sort todo items by priority and due date', async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([
+          {
+            id: 'run-1',
+            name: 'Medium Priority Run',
+            status: TestRunStatus.NOT_STARTED,
+            startedAt: null,
+          },
+        ]),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      mockTestResultQueryBuilder.getRawMany.mockResolvedValue([
+        { runId: 'run-1', total: '10', executed: '0' },
+      ]);
+
+      mockMilestoneQueryBuilder.getMany
+        .mockResolvedValueOnce([
+          { id: 'milestone-overdue', name: 'Overdue', dueDate: yesterday },
+        ])
+        .mockResolvedValueOnce([
+          { id: 'milestone-upcoming', name: 'Upcoming', dueDate: tomorrow },
+        ]);
+
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      const result = await service.getTodo('proj-123');
+
+      // Critical items should come first
+      expect(result.items[0].priority).toBe(TodoPriority.CRITICAL);
+    });
+
+    it('should filter todo items by userId when provided', async () => {
+      const mockTodoRunQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      testRunRepository.createQueryBuilder = jest.fn().mockReturnValue(mockTodoRunQueryBuilder);
+
+      mockMilestoneQueryBuilder.getMany.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      await service.getTodo('proj-123', 'user-123');
+
+      // Verify andWhere was called with userId filter
+      expect(mockTodoRunQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'run.assignee_id = :userId',
+        { userId: 'user-123' }
+      );
     });
   });
 });
