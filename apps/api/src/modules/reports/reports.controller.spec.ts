@@ -6,6 +6,7 @@ import {
   CoverageReportDto,
   DefectsReportDto,
   ActivityReportDto,
+  TrendsReportDto,
 } from './dto';
 
 describe('ReportsController', () => {
@@ -107,6 +108,23 @@ describe('ReportsController', () => {
     generatedAt: new Date('2024-01-15T10:00:00.000Z'),
   };
 
+  const mockTrendsReport: TrendsReportDto = {
+    projectId: 'proj-123',
+    periodStart: '2024-01-01',
+    periodEnd: '2024-01-31',
+    executionTrends: [
+      { date: '2024-01-15', passRate: 80, testsExecuted: 25, passed: 20, failed: 5 },
+      { date: '2024-01-16', passRate: 85, testsExecuted: 30, passed: 25, failed: 5 },
+    ],
+    defectTrends: [
+      { date: '2024-01-15', newDefects: 2, cumulativeDefects: 2 },
+      { date: '2024-01-16', newDefects: 1, cumulativeDefects: 3 },
+    ],
+    averagePassRate: 82,
+    passRateTrend: 5,
+    generatedAt: new Date('2024-01-15T10:00:00.000Z'),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReportsController],
@@ -118,6 +136,7 @@ describe('ReportsController', () => {
             getCoverageReport: jest.fn(),
             getDefectsReport: jest.fn(),
             getActivityReport: jest.fn(),
+            getTrends: jest.fn(),
           },
         },
       ],
@@ -433,6 +452,108 @@ describe('ReportsController', () => {
       await controller.getActivity('proj-123', undefined, '2024-01-31');
 
       expect(service.getActivityReport).toHaveBeenCalledWith(
+        'proj-123',
+        undefined,
+        new Date('2024-01-31'),
+      );
+    });
+  });
+
+  // ============ Trends Endpoint ============
+
+  describe('getTrends', () => {
+    it('should return trends report', async () => {
+      service.getTrends.mockResolvedValue(mockTrendsReport);
+
+      const result = await controller.getTrends('proj-123');
+
+      expect(service.getTrends).toHaveBeenCalledWith('proj-123', undefined, undefined);
+      expect(result).toEqual(mockTrendsReport);
+    });
+
+    it('should pass date parameters to service', async () => {
+      service.getTrends.mockResolvedValue(mockTrendsReport);
+
+      await controller.getTrends('proj-123', '2024-01-01', '2024-01-31');
+
+      expect(service.getTrends).toHaveBeenCalledWith(
+        'proj-123',
+        new Date('2024-01-01'),
+        new Date('2024-01-31'),
+      );
+    });
+
+    it('should return execution trends', async () => {
+      service.getTrends.mockResolvedValue(mockTrendsReport);
+
+      const result = await controller.getTrends('proj-123');
+
+      expect(result.executionTrends).toHaveLength(2);
+      expect(result.executionTrends[0].date).toBe('2024-01-15');
+      expect(result.executionTrends[0].passRate).toBe(80);
+      expect(result.executionTrends[0].testsExecuted).toBe(25);
+    });
+
+    it('should return defect trends', async () => {
+      service.getTrends.mockResolvedValue(mockTrendsReport);
+
+      const result = await controller.getTrends('proj-123');
+
+      expect(result.defectTrends).toHaveLength(2);
+      expect(result.defectTrends[0].date).toBe('2024-01-15');
+      expect(result.defectTrends[0].newDefects).toBe(2);
+      expect(result.defectTrends[0].cumulativeDefects).toBe(2);
+    });
+
+    it('should return trend statistics', async () => {
+      service.getTrends.mockResolvedValue(mockTrendsReport);
+
+      const result = await controller.getTrends('proj-123');
+
+      expect(result.averagePassRate).toBe(82);
+      expect(result.passRateTrend).toBe(5);
+      expect(result.periodStart).toBe('2024-01-01');
+      expect(result.periodEnd).toBe('2024-01-31');
+    });
+
+    it('should return empty trends report when no data', async () => {
+      const emptyTrendsReport: TrendsReportDto = {
+        projectId: 'proj-123',
+        periodStart: '2024-01-01',
+        periodEnd: '2024-01-31',
+        executionTrends: [],
+        defectTrends: [],
+        averagePassRate: 0,
+        passRateTrend: 0,
+        generatedAt: new Date(),
+      };
+      service.getTrends.mockResolvedValue(emptyTrendsReport);
+
+      const result = await controller.getTrends('proj-123');
+
+      expect(result.executionTrends).toEqual([]);
+      expect(result.defectTrends).toEqual([]);
+      expect(result.averagePassRate).toBe(0);
+    });
+
+    it('should handle only startDate parameter', async () => {
+      service.getTrends.mockResolvedValue(mockTrendsReport);
+
+      await controller.getTrends('proj-123', '2024-01-01', undefined);
+
+      expect(service.getTrends).toHaveBeenCalledWith(
+        'proj-123',
+        new Date('2024-01-01'),
+        undefined,
+      );
+    });
+
+    it('should handle only endDate parameter', async () => {
+      service.getTrends.mockResolvedValue(mockTrendsReport);
+
+      await controller.getTrends('proj-123', undefined, '2024-01-31');
+
+      expect(service.getTrends).toHaveBeenCalledWith(
         'proj-123',
         undefined,
         new Date('2024-01-31'),

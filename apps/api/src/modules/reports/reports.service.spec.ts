@@ -556,4 +556,247 @@ describe('ReportsService', () => {
       expect(result.testerActivity[0].passRate).toBe(0);
     });
   });
+
+  // ============ Wrapper Methods ============
+
+  describe('getSummary', () => {
+    it('should delegate to getProjectSummary', async () => {
+      testCaseRepository.count.mockResolvedValue(10);
+      testRunRepository.count.mockResolvedValue(0);
+      mockTestRunQueryBuilder.getRawMany.mockResolvedValue([]);
+      requirementRepository.find.mockResolvedValue([]);
+
+      const result = await service.getSummary('proj-123');
+
+      expect(result.projectId).toBe('proj-123');
+      expect(result.testExecution).toBeDefined();
+      expect(result.testRuns).toBeDefined();
+      expect(result.requirementCoverage).toBeDefined();
+    });
+  });
+
+  describe('getCoverage', () => {
+    it('should delegate to getCoverageReport', async () => {
+      requirementRepository.find.mockResolvedValue([]);
+
+      const result = await service.getCoverage('proj-123');
+
+      expect(result.projectId).toBe('proj-123');
+      expect(result.requirements).toEqual([]);
+    });
+  });
+
+  describe('getDefects', () => {
+    it('should delegate to getDefectsReport', async () => {
+      mockTestResultQueryBuilder.getMany.mockResolvedValue([]);
+      mockTestResultQueryBuilder.getCount.mockResolvedValue(0);
+
+      const result = await service.getDefects('proj-123');
+
+      expect(result.projectId).toBe('proj-123');
+      expect(result.defects).toEqual([]);
+    });
+  });
+
+  // ============ Trends Report ============
+
+  describe('getTrends', () => {
+    it('should return trends report with execution and defect trends', async () => {
+      const dailyResults = [
+        { date: '2024-01-15', status: TestStatus.PASSED, count: '10' },
+        { date: '2024-01-15', status: TestStatus.FAILED, count: '2' },
+        { date: '2024-01-16', status: TestStatus.PASSED, count: '15' },
+        { date: '2024-01-16', status: TestStatus.FAILED, count: '3' },
+      ];
+      const defectResults = [
+        { date: '2024-01-15', defects: ['DEF-1', 'DEF-2'] },
+        { date: '2024-01-16', defects: ['DEF-2', 'DEF-3'] },
+      ];
+
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce(dailyResults)
+        .mockResolvedValueOnce(defectResults);
+
+      const result = await service.getTrends(
+        'proj-123',
+        new Date('2024-01-15'),
+        new Date('2024-01-16'),
+      );
+
+      expect(result.projectId).toBe('proj-123');
+      expect(result.periodStart).toBe('2024-01-15');
+      expect(result.periodEnd).toBe('2024-01-16');
+
+      expect(result.executionTrends).toHaveLength(2);
+      const day1 = result.executionTrends.find((d) => d.date === '2024-01-15');
+      expect(day1?.testsExecuted).toBe(12);
+      expect(day1?.passed).toBe(10);
+      expect(day1?.failed).toBe(2);
+      expect(day1?.passRate).toBe(83); // 10 / 12 = 83%
+
+      const day2 = result.executionTrends.find((d) => d.date === '2024-01-16');
+      expect(day2?.testsExecuted).toBe(18);
+      expect(day2?.passRate).toBe(83); // 15 / 18 = 83%
+
+      expect(result.defectTrends).toHaveLength(2);
+      const defectDay1 = result.defectTrends.find((d) => d.date === '2024-01-15');
+      expect(defectDay1?.newDefects).toBe(2);
+      expect(defectDay1?.cumulativeDefects).toBe(2);
+
+      const defectDay2 = result.defectTrends.find((d) => d.date === '2024-01-16');
+      expect(defectDay2?.newDefects).toBe(1); // Only DEF-3 is new
+      expect(defectDay2?.cumulativeDefects).toBe(3);
+
+      expect(result.averagePassRate).toBe(83);
+      expect(result.passRateTrend).toBe(0); // 83 - 83 = 0
+
+      expect(result.generatedAt).toBeInstanceOf(Date);
+    });
+
+    it('should return empty trends report when no results exist', async () => {
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getTrends('proj-123');
+
+      expect(result.executionTrends).toEqual([]);
+      expect(result.defectTrends).toEqual([]);
+      expect(result.averagePassRate).toBe(0);
+      expect(result.passRateTrend).toBe(0);
+    });
+
+    it('should use default date range when not provided', async () => {
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getTrends('proj-123');
+
+      const start = new Date(result.periodStart);
+      const end = new Date(result.periodEnd);
+      const diffDays = Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+      expect(diffDays).toBe(30);
+    });
+
+    it('should calculate positive pass rate trend when improving', async () => {
+      const dailyResults = [
+        { date: '2024-01-15', status: TestStatus.PASSED, count: '5' },
+        { date: '2024-01-15', status: TestStatus.FAILED, count: '5' },
+        { date: '2024-01-16', status: TestStatus.PASSED, count: '9' },
+        { date: '2024-01-16', status: TestStatus.FAILED, count: '1' },
+      ];
+
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce(dailyResults)
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getTrends('proj-123');
+
+      expect(result.executionTrends[0].passRate).toBe(50); // Day 1: 50%
+      expect(result.executionTrends[1].passRate).toBe(90); // Day 2: 90%
+      expect(result.passRateTrend).toBe(40); // +40 improvement
+    });
+
+    it('should calculate negative pass rate trend when declining', async () => {
+      const dailyResults = [
+        { date: '2024-01-15', status: TestStatus.PASSED, count: '9' },
+        { date: '2024-01-15', status: TestStatus.FAILED, count: '1' },
+        { date: '2024-01-16', status: TestStatus.PASSED, count: '5' },
+        { date: '2024-01-16', status: TestStatus.FAILED, count: '5' },
+      ];
+
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce(dailyResults)
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getTrends('proj-123');
+
+      expect(result.executionTrends[0].passRate).toBe(90); // Day 1: 90%
+      expect(result.executionTrends[1].passRate).toBe(50); // Day 2: 50%
+      expect(result.passRateTrend).toBe(-40); // -40 decline
+    });
+
+    it('should track cumulative defects correctly', async () => {
+      const defectResults = [
+        { date: '2024-01-15', defects: ['DEF-1'] },
+        { date: '2024-01-16', defects: ['DEF-1', 'DEF-2'] },
+        { date: '2024-01-17', defects: ['DEF-3'] },
+      ];
+
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(defectResults);
+
+      const result = await service.getTrends('proj-123');
+
+      expect(result.defectTrends).toHaveLength(3);
+      expect(result.defectTrends[0]).toEqual({
+        date: '2024-01-15',
+        newDefects: 1,
+        cumulativeDefects: 1,
+      });
+      expect(result.defectTrends[1]).toEqual({
+        date: '2024-01-16',
+        newDefects: 1, // Only DEF-2 is new
+        cumulativeDefects: 2,
+      });
+      expect(result.defectTrends[2]).toEqual({
+        date: '2024-01-17',
+        newDefects: 1, // DEF-3 is new
+        cumulativeDefects: 3,
+      });
+    });
+
+    it('should handle null defects array', async () => {
+      const defectResults = [
+        { date: '2024-01-15', defects: null },
+        { date: '2024-01-16', defects: ['DEF-1'] },
+      ];
+
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(defectResults);
+
+      const result = await service.getTrends('proj-123');
+
+      // Null defects array results in 0 new defects for that date
+      expect(result.defectTrends).toHaveLength(2);
+      expect(result.defectTrends[0]).toEqual({
+        date: '2024-01-15',
+        newDefects: 0,
+        cumulativeDefects: 0,
+      });
+      expect(result.defectTrends[1]).toEqual({
+        date: '2024-01-16',
+        newDefects: 1,
+        cumulativeDefects: 1,
+      });
+    });
+
+    it('should calculate pass rate with single day of data', async () => {
+      const dailyResults = [
+        { date: '2024-01-15', status: TestStatus.PASSED, count: '8' },
+        { date: '2024-01-15', status: TestStatus.FAILED, count: '2' },
+      ];
+
+      mockTestResultQueryBuilder.clone.mockReturnValue(mockTestResultQueryBuilder);
+      mockTestResultQueryBuilder.getRawMany
+        .mockResolvedValueOnce(dailyResults)
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getTrends('proj-123');
+
+      expect(result.executionTrends).toHaveLength(1);
+      expect(result.averagePassRate).toBe(80);
+      expect(result.passRateTrend).toBe(0); // No trend with single data point
+    });
+  });
 });

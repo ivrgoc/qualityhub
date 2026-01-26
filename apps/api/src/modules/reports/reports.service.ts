@@ -11,6 +11,7 @@ import {
   CoverageReportDto,
   DefectsReportDto,
   ActivityReportDto,
+  TrendsReportDto,
 } from './dto';
 
 @Injectable()
@@ -27,6 +28,153 @@ export class ReportsService {
     @InjectRepository(RequirementCoverage)
     private readonly coverageRepository: Repository<RequirementCoverage>,
   ) {}
+
+  // ============ Public API Methods ============
+
+  async getSummary(projectId: string): Promise<ProjectSummaryDto> {
+    return this.getProjectSummary(projectId);
+  }
+
+  async getCoverage(projectId: string): Promise<CoverageReportDto> {
+    return this.getCoverageReport(projectId);
+  }
+
+  async getDefects(projectId: string): Promise<DefectsReportDto> {
+    return this.getDefectsReport(projectId);
+  }
+
+  async getTrends(
+    projectId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<TrendsReportDto> {
+    // Default to last 30 days if no dates provided
+    const end = endDate || new Date();
+    const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const baseQuery = this.testResultRepository
+      .createQueryBuilder('result')
+      .innerJoin('result.testRun', 'testRun')
+      .where('testRun.project_id = :projectId', { projectId })
+      .andWhere('result.executed_at IS NOT NULL')
+      .andWhere('result.executed_at >= :start', { start })
+      .andWhere('result.executed_at <= :end', { end });
+
+    // Get daily execution trends
+    const dailyResults = await baseQuery
+      .clone()
+      .select("TO_CHAR(result.executed_at, 'YYYY-MM-DD')", 'date')
+      .addSelect('result.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy("TO_CHAR(result.executed_at, 'YYYY-MM-DD')")
+      .addGroupBy('result.status')
+      .orderBy("TO_CHAR(result.executed_at, 'YYYY-MM-DD')", 'ASC')
+      .getRawMany();
+
+    // Aggregate daily execution trends
+    const dailyMap = new Map<
+      string,
+      { testsExecuted: number; passed: number; failed: number }
+    >();
+
+    for (const row of dailyResults) {
+      if (!dailyMap.has(row.date)) {
+        dailyMap.set(row.date, { testsExecuted: 0, passed: 0, failed: 0 });
+      }
+      const data = dailyMap.get(row.date)!;
+      const count = parseInt(row.count, 10);
+      data.testsExecuted += count;
+      if (row.status === TestStatus.PASSED) {
+        data.passed = count;
+      } else if (row.status === TestStatus.FAILED) {
+        data.failed = count;
+      }
+    }
+
+    const executionTrends = Array.from(dailyMap.entries()).map(([date, data]) => ({
+      date,
+      passRate:
+        data.testsExecuted > 0 ? Math.round((data.passed / data.testsExecuted) * 100) : 0,
+      testsExecuted: data.testsExecuted,
+      passed: data.passed,
+      failed: data.failed,
+    }));
+
+    // Get daily defect trends
+    const defectResults = await this.testResultRepository
+      .createQueryBuilder('result')
+      .select("TO_CHAR(result.executed_at, 'YYYY-MM-DD')", 'date')
+      .addSelect('result.defects', 'defects')
+      .innerJoin('result.testRun', 'testRun')
+      .where('testRun.project_id = :projectId', { projectId })
+      .andWhere('result.executed_at IS NOT NULL')
+      .andWhere('result.executed_at >= :start', { start })
+      .andWhere('result.executed_at <= :end', { end })
+      .andWhere('result.defects IS NOT NULL')
+      .andWhere("result.defects != '[]'::jsonb")
+      .getRawMany();
+
+    // Aggregate defect trends by date
+    const defectByDateMap = new Map<string, Set<string>>();
+    const allDefects = new Set<string>();
+
+    for (const row of defectResults) {
+      const date = row.date;
+      if (!defectByDateMap.has(date)) {
+        defectByDateMap.set(date, new Set());
+      }
+      const defectsOnDate = defectByDateMap.get(date)!;
+
+      if (row.defects && Array.isArray(row.defects)) {
+        for (const defectId of row.defects) {
+          if (!allDefects.has(defectId)) {
+            defectsOnDate.add(defectId);
+            allDefects.add(defectId);
+          }
+        }
+      }
+    }
+
+    // Build defect trends with cumulative count
+    const sortedDates = Array.from(defectByDateMap.keys()).sort();
+    let cumulativeCount = 0;
+    const defectTrends = sortedDates.map((date) => {
+      const newDefects = defectByDateMap.get(date)!.size;
+      cumulativeCount += newDefects;
+      return {
+        date,
+        newDefects,
+        cumulativeDefects: cumulativeCount,
+      };
+    });
+
+    // Calculate average pass rate and trend
+    let averagePassRate = 0;
+    let passRateTrend = 0;
+
+    if (executionTrends.length > 0) {
+      const totalPassRate = executionTrends.reduce((sum, d) => sum + d.passRate, 0);
+      averagePassRate = Math.round(totalPassRate / executionTrends.length);
+
+      // Calculate trend as difference between last and first pass rate
+      if (executionTrends.length >= 2) {
+        const firstPassRate = executionTrends[0].passRate;
+        const lastPassRate = executionTrends[executionTrends.length - 1].passRate;
+        passRateTrend = lastPassRate - firstPassRate;
+      }
+    }
+
+    return {
+      projectId,
+      periodStart: start.toISOString().split('T')[0],
+      periodEnd: end.toISOString().split('T')[0],
+      executionTrends,
+      defectTrends,
+      averagePassRate,
+      passRateTrend,
+      generatedAt: new Date(),
+    };
+  }
 
   // ============ Project Summary ============
 

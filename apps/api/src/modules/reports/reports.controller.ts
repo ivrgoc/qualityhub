@@ -19,6 +19,7 @@ import {
   CoverageReportDto,
   DefectsReportDto,
   ActivityReportDto,
+  TrendsReportDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -93,5 +94,35 @@ export class ReportsController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     return this.reportsService.getActivityReport(projectId, start, end);
+  }
+
+  @Get('trends')
+  @ApiOperation({ summary: 'Get test execution and defect trends report' })
+  @ApiOkResponse({
+    description: 'Trends report with pass rate and defect trends over time',
+    type: TrendsReportDto,
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Start date for the report period (ISO format, e.g., 2024-01-01)',
+    example: '2024-01-01',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'End date for the report period (ISO format, e.g., 2024-01-31)',
+    example: '2024-01-31',
+  })
+  async getTrends(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<TrendsReportDto> {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.reportsService.getTrends(projectId, start, end);
   }
 }
