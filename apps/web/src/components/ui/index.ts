@@ -46,6 +46,17 @@ export {
 } from './DropdownMenu';
 export { Input, type InputProps } from './Input';
 export {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverAnchor,
+  PopoverPortal,
+  PopoverClose,
+  PopoverArrow,
+  type PopoverContentProps,
+  type PopoverArrowProps,
+} from './Popover';
+export {
   Select,
   SelectContent,
   SelectGroup,
