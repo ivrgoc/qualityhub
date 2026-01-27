@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="QualityHub - AI-powered test management platform for QA teams" />
     <title>QualityHub</title>
+    <!-- Prevent flash of wrong theme by applying theme before React loads -->
+    <script>
+      (function() {
+        const stored = localStorage.getItem('qualityhub-theme');
+        const theme = stored === 'light' || stored === 'dark' ? stored : 'system';
+        const isDark = theme === 'dark' ||
+          (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) document.documentElement.classList.add('dark');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

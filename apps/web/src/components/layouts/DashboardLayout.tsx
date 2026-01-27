@@ -1,6 +1,7 @@
 import { type FC, type ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { KeyboardShortcutsDialog } from '@/components/ui';
 import { cn } from '@/utils/cn';
 
 export interface DashboardLayoutProps {
@@ -28,6 +29,9 @@ export const DashboardLayout: FC<DashboardLayoutProps> = ({ children, className 
           {children}
         </main>
       </div>
+
+      {/* Global keyboard shortcuts dialog */}
+      <KeyboardShortcutsDialog />
     </div>
   );
 };

@@ -234,6 +234,7 @@ export const testRunsApi = baseApi.injectEndpoints({
     /**
      * Add a single test result to a test run.
      * Invalidates the test run (to update stats) and test result caches.
+     * Uses optimistic updates for immediate UI feedback.
      */
     addTestResult: builder.mutation<TestResult, AddTestResultRequest>({
       query: ({ projectId, runId, ...body }) => ({
@@ -246,6 +247,42 @@ export const testRunsApi = baseApi.injectEndpoints({
         createListTag('TestResult'),
         createTag('Project', projectId),
       ],
+      // Optimistic update for immediate UI feedback
+      async onQueryStarted({ projectId, runId, caseId, status }, { dispatch, queryFulfilled }) {
+        // Optimistically update the test run stats
+        const patchResult = dispatch(
+          testRunsApi.util.updateQueryData('getTestRun', { projectId, id: runId }, (draft) => {
+            if (draft.stats) {
+              // Decrement untested count and increment the new status count
+              draft.stats.untested = Math.max(0, draft.stats.untested - 1);
+              switch (status) {
+                case 'passed':
+                  draft.stats.passed += 1;
+                  break;
+                case 'failed':
+                  draft.stats.failed += 1;
+                  break;
+                case 'blocked':
+                  draft.stats.blocked += 1;
+                  break;
+                case 'skipped':
+                  draft.stats.skipped += 1;
+                  break;
+                case 'retest':
+                  draft.stats.retest += 1;
+                  break;
+              }
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert optimistic update on error
+          patchResult.undo();
+        }
+      },
     }),
 
     /**
@@ -279,6 +316,7 @@ export const testRunsApi = baseApi.injectEndpoints({
 
     /**
      * Update an existing test result.
+     * Uses optimistic updates for immediate UI feedback when changing status.
      */
     updateTestResult: builder.mutation<
       TestResult,
@@ -286,13 +324,14 @@ export const testRunsApi = baseApi.injectEndpoints({
         projectId: string;
         runId: string;
         resultId: string;
+        previousStatus?: TestStatus;
         status?: TestStatus;
         comment?: string;
         elapsedSeconds?: number;
         defects?: string[];
       }
     >({
-      query: ({ projectId, runId, resultId, ...body }) => ({
+      query: ({ projectId, runId, resultId, previousStatus: _prev, ...body }) => ({
         url: `/projects/${projectId}/runs/${runId}/results/${resultId}`,
         method: 'PUT',
         body,
@@ -303,6 +342,73 @@ export const testRunsApi = baseApi.injectEndpoints({
         createListTag('TestResult'),
         createTag('Project', projectId),
       ],
+      // Optimistic update for status changes
+      async onQueryStarted(
+        { projectId, runId, resultId, status, previousStatus },
+        { dispatch, queryFulfilled }
+      ) {
+        // Only do optimistic update if status is changing
+        if (!status || !previousStatus || status === previousStatus) {
+          return;
+        }
+
+        // Helper to update stats
+        const updateStatForStatus = (
+          stats: TestRunStats,
+          testStatus: TestStatus,
+          delta: number
+        ) => {
+          switch (testStatus) {
+            case 'passed':
+              stats.passed = Math.max(0, stats.passed + delta);
+              break;
+            case 'failed':
+              stats.failed = Math.max(0, stats.failed + delta);
+              break;
+            case 'blocked':
+              stats.blocked = Math.max(0, stats.blocked + delta);
+              break;
+            case 'skipped':
+              stats.skipped = Math.max(0, stats.skipped + delta);
+              break;
+            case 'retest':
+              stats.retest = Math.max(0, stats.retest + delta);
+              break;
+            case 'untested':
+              stats.untested = Math.max(0, stats.untested + delta);
+              break;
+          }
+        };
+
+        // Optimistically update the test run stats
+        const runPatch = dispatch(
+          testRunsApi.util.updateQueryData('getTestRun', { projectId, id: runId }, (draft) => {
+            if (draft.stats) {
+              updateStatForStatus(draft.stats, previousStatus, -1);
+              updateStatForStatus(draft.stats, status, 1);
+            }
+          })
+        );
+
+        // Optimistically update the test result
+        const resultPatch = dispatch(
+          testRunsApi.util.updateQueryData(
+            'getTestResult',
+            { projectId, runId, resultId },
+            (draft) => {
+              draft.status = status;
+            }
+          )
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert optimistic updates on error
+          runPatch.undo();
+          resultPatch.undo();
+        }
+      },
     }),
   }),
 });

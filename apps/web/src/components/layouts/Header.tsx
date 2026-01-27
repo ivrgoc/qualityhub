@@ -1,6 +1,6 @@
 import { type FC, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, Sun, Moon, Monitor } from 'lucide-react';
 import {
   Avatar,
   Button,
@@ -19,6 +19,7 @@ import {
 } from '@/components/features/header';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectUser, clearCredentials } from '@/store/slices/authSlice';
+import { useTheme, type Theme } from '@/hooks';
 import { cn } from '@/utils/cn';
 
 // Mock notifications for demonstration - in production this would come from API/Redux
@@ -60,10 +61,23 @@ export interface HeaderProps {
  * Header component with breadcrumbs, search, notifications, and user menu
  * for the dashboard layout.
  */
+const themeIcons: Record<Theme, typeof Sun> = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+};
+
+const themeLabels: Record<Theme, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+};
+
 export const Header: FC<HeaderProps> = ({ className }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector(selectUser);
+  const { theme, setTheme } = useTheme();
 
   // Local state for notifications - in production this would be in Redux
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
@@ -149,6 +163,29 @@ export const Header: FC<HeaderProps> = ({ className }) => {
                 Settings
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Theme
+            </DropdownMenuLabel>
+            {(['light', 'dark', 'system'] as const).map((themeOption) => {
+              const Icon = themeIcons[themeOption];
+              return (
+                <DropdownMenuItem
+                  key={themeOption}
+                  onClick={() => setTheme(themeOption)}
+                  className={cn(
+                    'cursor-pointer',
+                    theme === themeOption && 'bg-accent'
+                  )}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  {themeLabels[themeOption]}
+                  {theme === themeOption && (
+                    <span className="ml-auto text-xs text-muted-foreground">Active</span>
+                  )}
+                </DropdownMenuItem>
+              );
+            })}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
