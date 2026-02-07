@@ -37,6 +37,50 @@ import { User } from '../users/entities/user.entity';
 export class TestCasesController {
   constructor(private readonly testCasesService: TestCasesService) {}
 
+  // --- Bulk operations (must be declared before parameterized routes) ---
+
+  @Post('bulk')
+  @ApiOperation({ summary: 'Bulk create test cases' })
+  @ApiCreatedResponse({ description: 'Test cases created successfully' })
+  async bulkCreate(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() bulkCreateDto: BulkCreateTestCasesDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.testCasesService.bulkCreate(
+      projectId,
+      bulkCreateDto.testCases,
+      user?.id,
+    );
+  }
+
+  @Patch('bulk')
+  @ApiOperation({ summary: 'Bulk update test cases' })
+  @ApiOkResponse({ description: 'Test cases updated successfully' })
+  async bulkUpdate(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() bulkUpdateDto: BulkUpdateTestCasesDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.testCasesService.bulkUpdate(
+      projectId,
+      bulkUpdateDto.testCases,
+      user?.id,
+    );
+  }
+
+  @Delete('bulk')
+  @ApiOperation({ summary: 'Bulk delete test cases' })
+  @ApiOkResponse({ description: 'Test cases deleted successfully' })
+  async bulkDelete(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() bulkDeleteDto: BulkDeleteTestCasesDto,
+  ) {
+    return this.testCasesService.bulkDelete(projectId, bulkDeleteDto.ids);
+  }
+
+  // --- Single-item operations ---
+
   @Post()
   @ApiOperation({ summary: 'Create a new test case' })
   @ApiCreatedResponse({ description: 'Test case created successfully' })
@@ -53,6 +97,17 @@ export class TestCasesController {
   @ApiOkResponse({ description: 'List of test cases' })
   async findAll(@Param('projectId', ParseUUIDPipe) projectId: string) {
     return this.testCasesService.findAllByProject(projectId);
+  }
+
+  @Get(':id/history')
+  @ApiOperation({ summary: 'Get version history for a test case' })
+  @ApiOkResponse({ description: 'List of test case versions' })
+  @ApiNotFoundResponse({ description: 'Test case not found' })
+  async getHistory(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.testCasesService.getHistory(projectId, id);
   }
 
   @Get(':id')
@@ -94,56 +149,5 @@ export class TestCasesController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.testCasesService.delete(projectId, id);
-  }
-
-  @Get(':id/history')
-  @ApiOperation({ summary: 'Get version history for a test case' })
-  @ApiOkResponse({ description: 'List of test case versions' })
-  @ApiNotFoundResponse({ description: 'Test case not found' })
-  async getHistory(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    return this.testCasesService.getHistory(projectId, id);
-  }
-
-  @Post('bulk')
-  @ApiOperation({ summary: 'Bulk create test cases' })
-  @ApiCreatedResponse({ description: 'Test cases created successfully' })
-  async bulkCreate(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Body() bulkCreateDto: BulkCreateTestCasesDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.testCasesService.bulkCreate(
-      projectId,
-      bulkCreateDto.testCases,
-      user?.id,
-    );
-  }
-
-  @Patch('bulk')
-  @ApiOperation({ summary: 'Bulk update test cases' })
-  @ApiOkResponse({ description: 'Test cases updated successfully' })
-  async bulkUpdate(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Body() bulkUpdateDto: BulkUpdateTestCasesDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.testCasesService.bulkUpdate(
-      projectId,
-      bulkUpdateDto.testCases,
-      user?.id,
-    );
-  }
-
-  @Delete('bulk')
-  @ApiOperation({ summary: 'Bulk delete test cases' })
-  @ApiOkResponse({ description: 'Test cases deleted successfully' })
-  async bulkDelete(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
-    @Body() bulkDeleteDto: BulkDeleteTestCasesDto,
-  ) {
-    return this.testCasesService.bulkDelete(projectId, bulkDeleteDto.ids);
   }
 }

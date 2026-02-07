@@ -90,6 +90,7 @@ export class TestRunsController {
   }
 
   @Post(':id/start')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Start a test run' })
   @ApiOkResponse({ description: 'Test run started' })
   @ApiNotFoundResponse({ description: 'Test run not found' })
@@ -101,6 +102,7 @@ export class TestRunsController {
   }
 
   @Post(':id/complete')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Complete a test run' })
   @ApiOkResponse({ description: 'Test run completed' })
   @ApiNotFoundResponse({ description: 'Test run not found' })
@@ -112,6 +114,7 @@ export class TestRunsController {
   }
 
   @Post(':id/close')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Close a test run' })
   @ApiOkResponse({ description: 'Test run closed' })
   @ApiNotFoundResponse({ description: 'Test run not found' })

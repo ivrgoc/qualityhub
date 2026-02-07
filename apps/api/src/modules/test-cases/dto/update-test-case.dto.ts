@@ -8,9 +8,13 @@ import {
   IsNumber,
   IsUUID,
   IsObject,
+  ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TestCaseTemplate, Priority } from '../entities/test-case.entity';
+import { TestStepDto } from './test-step.dto';
 
 export class UpdateTestCaseDto {
   @ApiPropertyOptional({ example: 'Login with valid credentials' })
@@ -30,10 +34,16 @@ export class UpdateTestCaseDto {
   @IsString()
   preconditions?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    type: [TestStepDto],
+    description: 'Array of test steps (max 100)',
+  })
   @IsOptional()
   @IsArray()
-  steps?: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @ArrayMaxSize(100)
+  @Type(() => TestStepDto)
+  steps?: TestStepDto[];
 
   @ApiPropertyOptional({ example: 'User is logged in successfully' })
   @IsOptional()
