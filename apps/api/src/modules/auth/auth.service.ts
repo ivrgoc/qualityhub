@@ -7,6 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { UserRole } from '../users/entities/user.entity';
+import { OrganizationsService } from '../organizations/organizations.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -17,6 +19,7 @@ export class AuthService {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly organizationsService: OrganizationsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -27,11 +30,20 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
+    // Create a default organization for the new user
+    const orgSlug = `org-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    const organization = await this.organizationsService.create({
+      name: `${registerDto.name}'s Organization`,
+      slug: orgSlug,
+    });
+
     const passwordHash = await bcrypt.hash(registerDto.password, 10);
     const user = await this.usersService.create({
       email: registerDto.email,
       name: registerDto.name,
       passwordHash,
+      organizationId: organization.id,
+      role: UserRole.ORG_ADMIN, // First user is org admin
     });
 
     const { passwordHash: _, ...result } = user;

@@ -18,7 +18,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import { Multer } from 'multer';
 import {
   ApiTags,
   ApiOperation,
@@ -70,7 +69,7 @@ export class AttachmentsController {
   })
   @ApiCreatedResponse({ description: 'File uploaded successfully' })
   async upload(
-    @UploadedFile() file: Multer.File,
+    @UploadedFile() file: Express.Multer.File,
     @Body('entityType', new ParseEnumPipe(EntityType)) entityType: EntityType,
     @Body('entityId', ParseUUIDPipe) entityId: string,
   ) {

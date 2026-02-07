@@ -7,7 +7,7 @@ import {
 } from './interfaces/storage.interface';
 
 // Re-export types for backward compatibility
-export { StoredFile, UploadedFile } from './interfaces/storage.interface';
+export type { StoredFile, UploadedFile } from './interfaces/storage.interface';
 
 /**
  * StorageService is a facade that delegates to the configured storage provider.

@@ -34,10 +34,10 @@ export const createProject = async (options: CreateProjectOptions = {}): Promise
     name: options.name ?? `Test Project ${projectCounter}`,
     description: options.description ?? `Description for test project ${projectCounter}`,
     organizationId: organizationId!,
-    settings: options.settings ?? null,
-  });
+    settings: options.settings ?? {},
+  } as Partial<Project>);
 
-  return repository.save(project);
+  return repository.save(project) as Promise<Project>;
 };
 
 /**

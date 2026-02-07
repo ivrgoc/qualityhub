@@ -16,8 +16,8 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const user = this.userRepository.create(createUserDto);
-    return this.userRepository.save(user);
+    const user = this.userRepository.create(createUserDto as Partial<User>);
+    return this.userRepository.save(user) as Promise<User>;
   }
 
   async findByEmail(email: string): Promise<User | null> {

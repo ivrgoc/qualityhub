@@ -67,20 +67,19 @@ export const generateRefreshToken = (app: INestApplication, user: User): string 
 export const authenticatedRequest = (
   app: INestApplication,
   user: User,
-): request.SuperTest<request.Test> & { withAuth: () => request.SuperTest<request.Test> } => {
+) => {
   const token = generateAccessToken(app, user);
   const agent = request(app.getHttpServer());
 
   // Add auth header helper
   const withAuth = () => {
     return {
-      ...agent,
       get: (url: string) => agent.get(url).set('Authorization', `Bearer ${token}`),
       post: (url: string) => agent.post(url).set('Authorization', `Bearer ${token}`),
       put: (url: string) => agent.put(url).set('Authorization', `Bearer ${token}`),
       patch: (url: string) => agent.patch(url).set('Authorization', `Bearer ${token}`),
       delete: (url: string) => agent.delete(url).set('Authorization', `Bearer ${token}`),
-    } as request.SuperTest<request.Test>;
+    };
   };
 
   return Object.assign(agent, { withAuth });

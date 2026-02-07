@@ -63,14 +63,14 @@ export const createTestCase = async (options: CreateTestCaseOptions = {}): Promi
     expectedResult: options.expectedResult ?? 'Test passes successfully',
     priority: options.priority ?? Priority.MEDIUM,
     estimate: options.estimate ?? 5,
-    customFields: options.customFields ?? null,
+    customFields: options.customFields ?? {},
     version: options.version ?? 1,
     projectId: projectId!,
     sectionId: options.sectionId ?? options.section?.id ?? null,
-    createdBy: options.createdBy ?? null,
-  });
+    createdBy: options.createdBy ?? undefined,
+  } as Partial<TestCase>);
 
-  return repository.save(testCase);
+  return repository.save(testCase) as Promise<TestCase>;
 };
 
 /**

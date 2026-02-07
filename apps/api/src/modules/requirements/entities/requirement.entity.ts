@@ -37,7 +37,7 @@ export class Requirement {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'external_id', length: 255, nullable: true })
+  @Column({ name: 'external_id', type: 'varchar', length: 255, nullable: true })
   externalId: string | null;
 
   @Column({ length: 500 })

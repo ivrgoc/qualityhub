@@ -26,8 +26,8 @@ export class TestCasesService {
       projectId,
       createdBy: userId,
       version: 1,
-    });
-    const savedTestCase = await this.testCaseRepository.save(testCase);
+    } as Partial<TestCase>);
+    const savedTestCase = await this.testCaseRepository.save(testCase) as TestCase;
 
     await this.createVersionSnapshot(savedTestCase, userId);
 
@@ -101,7 +101,7 @@ export class TestCasesService {
         projectId,
         createdBy: userId,
         version: 1,
-      }),
+      } as Partial<TestCase>),
     );
 
     const savedTestCases = await this.testCaseRepository.save(testCases);
