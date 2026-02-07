@@ -27,6 +27,8 @@ import { UpdateTestRunDto } from './dto/update-test-run.dto';
 import { CreateTestResultDto } from './dto/create-test-result.dto';
 import { UpdateTestResultDto } from './dto/update-test-result.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('test-runs')
 @Controller('projects/:projectId/runs')
@@ -97,8 +99,9 @@ export class TestRunsController {
   async startRun(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
   ) {
-    return this.testRunsService.startRun(projectId, id);
+    return this.testRunsService.startRun(projectId, id, user?.id);
   }
 
   @Post(':id/complete')
@@ -169,8 +172,9 @@ export class TestRunsController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() createTestResultDto: CreateTestResultDto,
+    @CurrentUser() user: User,
   ) {
-    return this.testRunsService.addResult(projectId, id, createTestResultDto);
+    return this.testRunsService.addResult(projectId, id, createTestResultDto, user?.id);
   }
 
   @Get(':id/results/:resultId')
@@ -194,8 +198,9 @@ export class TestRunsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Param('resultId', ParseUUIDPipe) resultId: string,
     @Body() updateTestResultDto: UpdateTestResultDto,
+    @CurrentUser() user: User,
   ) {
-    return this.testRunsService.updateResult(projectId, id, resultId, updateTestResultDto);
+    return this.testRunsService.updateResult(projectId, id, resultId, updateTestResultDto, user?.id);
   }
 
   @Delete(':id/results/:resultId')

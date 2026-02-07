@@ -7,6 +7,7 @@ import { CreateTestRunDto } from './dto/create-test-run.dto';
 import { UpdateTestRunDto } from './dto/update-test-run.dto';
 import { CreateTestResultDto } from './dto/create-test-result.dto';
 import { UpdateTestResultDto } from './dto/update-test-result.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TestRunsService {
@@ -15,6 +16,7 @@ export class TestRunsService {
     private readonly testRunRepository: Repository<TestRun>,
     @InjectRepository(TestResult)
     private readonly testResultRepository: Repository<TestResult>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ============ Test Run Operations ============
@@ -95,18 +97,43 @@ export class TestRunsService {
     await this.testRunRepository.softDelete(id);
   }
 
-  async startRun(projectId: string, id: string): Promise<TestRun> {
+  async startRun(projectId: string, id: string, startedBy?: string): Promise<TestRun> {
     const testRun = await this.findByIdOrFail(projectId, id);
     testRun.status = TestRunStatus.IN_PROGRESS;
     testRun.startedAt = new Date();
-    return this.testRunRepository.save(testRun);
+    const savedRun = await this.testRunRepository.save(testRun);
+
+    // Emit WebSocket notification
+    this.notificationsService.notifyTestRunStarted({
+      testRunId: savedRun.id,
+      testRunName: savedRun.name,
+      projectId: savedRun.projectId,
+      startedAt: savedRun.startedAt!,
+      startedBy,
+    });
+
+    return savedRun;
   }
 
   async completeRun(projectId: string, id: string): Promise<TestRun> {
     const testRun = await this.findByIdOrFail(projectId, id);
     testRun.status = TestRunStatus.COMPLETED;
     testRun.completedAt = new Date();
-    return this.testRunRepository.save(testRun);
+    const savedRun = await this.testRunRepository.save(testRun);
+
+    // Get statistics for the notification
+    const statistics = await this.getRunStatistics(projectId, id);
+
+    // Emit WebSocket notification
+    this.notificationsService.notifyTestRunCompleted({
+      testRunId: savedRun.id,
+      testRunName: savedRun.name,
+      projectId: savedRun.projectId,
+      completedAt: savedRun.completedAt!,
+      statistics,
+    });
+
+    return savedRun;
   }
 
   async closeRun(projectId: string, id: string): Promise<TestRun> {
@@ -133,7 +160,7 @@ export class TestRunsService {
     createTestResultDto: CreateTestResultDto,
     executedBy?: string,
   ): Promise<TestResult> {
-    await this.findByIdOrFail(projectId, testRunId);
+    const testRun = await this.findByIdOrFail(projectId, testRunId);
 
     // Check if a result for this test case already exists in this run
     const existingResult = await this.testResultRepository.findOne({
@@ -159,7 +186,29 @@ export class TestRunsService {
           : null,
     });
 
-    return this.testResultRepository.save(result);
+    const savedResult = await this.testResultRepository.save(result);
+
+    // Load the test case to get the title for the notification
+    const resultWithTestCase = await this.testResultRepository.findOne({
+      where: { id: savedResult.id },
+      relations: ['testCase'],
+    });
+
+    // Emit WebSocket notification
+    if (resultWithTestCase && resultWithTestCase.testCase) {
+      this.notificationsService.notifyTestResultAdded({
+        testRunId,
+        testResultId: savedResult.id,
+        testCaseId: savedResult.testCaseId,
+        testCaseTitle: resultWithTestCase.testCase.title,
+        status: savedResult.status,
+        projectId: testRun.projectId,
+        executedBy,
+        executedAt: savedResult.executedAt ?? undefined,
+      });
+    }
+
+    return savedResult;
   }
 
   async addResults(
@@ -226,7 +275,10 @@ export class TestRunsService {
     updateTestResultDto: UpdateTestResultDto,
     executedBy?: string,
   ): Promise<TestResult> {
+    const testRun = await this.findByIdOrFail(projectId, testRunId);
     const result = await this.findResultByIdOrFail(projectId, testRunId, resultId);
+
+    const statusChanged = updateTestResultDto.status && updateTestResultDto.status !== result.status;
 
     // Set executedAt when status changes from untested
     if (
@@ -239,7 +291,30 @@ export class TestRunsService {
     }
 
     Object.assign(result, updateTestResultDto);
-    return this.testResultRepository.save(result);
+    const savedResult = await this.testResultRepository.save(result);
+
+    // Emit WebSocket notification if status changed
+    if (statusChanged) {
+      const resultWithTestCase = await this.testResultRepository.findOne({
+        where: { id: savedResult.id },
+        relations: ['testCase'],
+      });
+
+      if (resultWithTestCase && resultWithTestCase.testCase) {
+        this.notificationsService.notifyTestResultAdded({
+          testRunId,
+          testResultId: savedResult.id,
+          testCaseId: savedResult.testCaseId,
+          testCaseTitle: resultWithTestCase.testCase.title,
+          status: savedResult.status,
+          projectId: testRun.projectId,
+          executedBy: savedResult.executedBy ?? undefined,
+          executedAt: savedResult.executedAt ?? undefined,
+        });
+      }
+    }
+
+    return savedResult;
   }
 
   async deleteResult(
