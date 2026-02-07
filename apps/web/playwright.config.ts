@@ -2,6 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright configuration for QualityHub E2E tests.
+ *
+ * Configured for fast smoke testing with Chromium only.
+ * API calls are mocked via page.route() so no backend is required.
+ *
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
@@ -9,11 +13,11 @@ export default defineConfig({
   testDir: './e2e',
 
   // Maximum time one test can run
-  timeout: 30 * 1000,
+  timeout: 30_000,
 
   // Maximum time expect() should wait for the condition
   expect: {
-    timeout: 5000,
+    timeout: 5_000,
   },
 
   // Run tests in files in parallel
@@ -35,10 +39,10 @@ export default defineConfig({
     ...(process.env.CI ? [['github' as const]] : []),
   ],
 
-  // Shared settings for all the projects
+  // Shared settings for all projects
   use: {
-    // Base URL to use in actions like `await page.goto('/')`
-    baseURL: 'http://localhost:3000',
+    // Base URL for the Vite dev server
+    baseURL: 'http://localhost:5173',
 
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
@@ -53,61 +57,24 @@ export default defineConfig({
     acceptDownloads: true,
   },
 
-  // Configure projects for major browsers
+  // Chromium only for speed during development
   projects: [
-    // Authentication setup
-    {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
-    },
-
-    // Desktop browsers
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
       },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-      },
-      dependencies: ['setup'],
-    },
-
-    // Mobile viewports
-    {
-      name: 'mobile-chrome',
-      use: {
-        ...devices['Pixel 5'],
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'mobile-safari',
-      use: {
-        ...devices['iPhone 12'],
-      },
-      dependencies: ['setup'],
     },
   ],
 
-  // Run local dev server before starting the tests
-  webServer: {
-    command: 'pnpm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  // Uncomment to start the Vite dev server automatically before tests.
+  // Requires the dev server to not already be running.
+  // webServer: {
+  //   command: 'pnpm run dev',
+  //   url: 'http://localhost:5173',
+  //   reuseExistingServer: !process.env.CI,
+  //   timeout: 120_000,
+  // },
 
   // Output folder for test artifacts
   outputDir: 'test-results/',
