@@ -1,13 +1,19 @@
-"""Tests for API endpoints."""
+"""Tests for API endpoints.
+
+Tests cover both the prefixed (/api/v1/ai/*) and root-level (/generate/*)
+route paths to ensure the NestJS gateway integration works correctly.
+"""
+
+from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
 
 class TestHealthEndpoint:
-    """Tests for the health check endpoint."""
+    """Tests for the health check endpoints."""
 
     def test_health_check_returns_healthy(self, client: TestClient) -> None:
-        """Test that health check returns healthy status."""
+        """Test that prefixed health check returns healthy status."""
         response = client.get("/api/v1/ai/health")
         assert response.status_code == 200
 
@@ -15,6 +21,15 @@ class TestHealthEndpoint:
         assert data["status"] == "healthy"
         assert "version" in data
         assert "environment" in data
+
+    def test_root_health_check(self, client: TestClient) -> None:
+        """Test that root-level health check returns healthy status."""
+        response = client.get("/health")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert "version" in data
 
     def test_root_endpoint_returns_service_info(self, client: TestClient) -> None:
         """Test that root endpoint returns service information."""
@@ -28,7 +43,7 @@ class TestHealthEndpoint:
 
 
 class TestGenerateTestsEndpoint:
-    """Tests for the test generation endpoint."""
+    """Tests for the test generation endpoint at /api/v1/ai/generate-tests."""
 
     def test_generate_tests_with_valid_input(self, client: TestClient) -> None:
         """Test test generation with valid input returns test cases."""
@@ -131,7 +146,7 @@ class TestGenerateTestsEndpoint:
 
 
 class TestGenerateBDDEndpoint:
-    """Tests for the BDD generation endpoint."""
+    """Tests for the BDD generation endpoint at /api/v1/ai/generate-bdd."""
 
     def test_generate_bdd_with_valid_input(self, client: TestClient) -> None:
         """Test BDD generation with valid input returns scenarios."""
@@ -274,3 +289,109 @@ class TestSuggestCoverageEndpoint:
             },
         )
         assert response.status_code == 422  # Validation error
+
+
+class TestNestJSGatewayRoutes:
+    """Tests for the root-level /generate/* routes consumed by NestJS gateway.
+
+    The NestJS backend calls these endpoints via:
+      - POST http://localhost:8000/generate/tests
+      - POST http://localhost:8000/generate/bdd
+    """
+
+    def test_generate_tests_via_gateway_path(self, client: TestClient) -> None:
+        """Test that /generate/tests endpoint works (NestJS gateway path)."""
+        response = client.post(
+            "/generate/tests",
+            json={
+                "description": "User login with email and password authentication",
+                "test_type": "all",
+                "max_tests": 3,
+            },
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "test_cases" in data
+        assert len(data["test_cases"]) > 0
+        assert "metadata" in data
+
+    def test_generate_bdd_via_gateway_path(self, client: TestClient) -> None:
+        """Test that /generate/bdd endpoint works (NestJS gateway path)."""
+        response = client.post(
+            "/generate/bdd",
+            json={
+                "feature_description": "User authentication with multi-factor authentication",
+                "max_scenarios": 3,
+                "include_examples": True,
+            },
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "feature_name" in data
+        assert "feature_description" in data
+        assert "scenarios" in data
+        assert "gherkin" in data
+        assert len(data["scenarios"]) > 0
+
+    def test_generate_tests_gateway_matches_prefixed_output(self, client: TestClient) -> None:
+        """Test that gateway and prefixed endpoints produce equivalent output."""
+        payload = {
+            "description": "User profile management with avatar upload",
+            "test_type": "functional",
+            "max_tests": 2,
+        }
+
+        gateway_response = client.post("/generate/tests", json=payload)
+        prefixed_response = client.post("/api/v1/ai/generate/tests", json=payload)
+
+        assert gateway_response.status_code == 200
+        assert prefixed_response.status_code == 200
+
+        gateway_data = gateway_response.json()
+        prefixed_data = prefixed_response.json()
+
+        # Both should return test cases with the same structure
+        assert len(gateway_data["test_cases"]) == len(prefixed_data["test_cases"])
+        assert gateway_data["test_cases"][0]["test_type"] == "functional"
+        assert prefixed_data["test_cases"][0]["test_type"] == "functional"
+
+    def test_generate_bdd_gateway_matches_prefixed_output(self, client: TestClient) -> None:
+        """Test that gateway and prefixed BDD endpoints produce equivalent output."""
+        payload = {
+            "feature_description": "Order processing with payment integration",
+            "max_scenarios": 2,
+        }
+
+        gateway_response = client.post("/generate/bdd", json=payload)
+        prefixed_response = client.post("/api/v1/ai/generate/bdd", json=payload)
+
+        assert gateway_response.status_code == 200
+        assert prefixed_response.status_code == 200
+
+        gateway_data = gateway_response.json()
+        prefixed_data = prefixed_response.json()
+
+        # Both should return scenarios with the same structure
+        assert len(gateway_data["scenarios"]) == len(prefixed_data["scenarios"])
+        assert "gherkin" in gateway_data
+        assert "gherkin" in prefixed_data
+
+    def test_generate_tests_gateway_validation(self, client: TestClient) -> None:
+        """Test that gateway endpoint validates input correctly."""
+        # Short description should be rejected
+        response = client.post(
+            "/generate/tests",
+            json={"description": "short"},
+        )
+        assert response.status_code == 422
+
+    def test_generate_bdd_gateway_validation(self, client: TestClient) -> None:
+        """Test that gateway BDD endpoint validates input correctly."""
+        # Short description should be rejected
+        response = client.post(
+            "/generate/bdd",
+            json={"feature_description": "short"},
+        )
+        assert response.status_code == 422

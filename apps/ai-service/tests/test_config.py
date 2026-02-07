@@ -31,11 +31,11 @@ class TestSettings:
         """AI provider settings should have correct defaults."""
         settings = Settings()
 
-        assert settings.default_ai_provider == "openai"
+        assert settings.default_ai_provider == "anthropic"
         assert settings.openai_api_key is None
         assert settings.anthropic_api_key is None
-        assert settings.openai_model == "gpt-4-turbo-preview"
-        assert settings.anthropic_model == "claude-3-sonnet-20240229"
+        assert settings.openai_model == "gpt-4o"
+        assert settings.anthropic_model == "claude-sonnet-4-20250514"
 
     def test_openai_settings_defaults(self) -> None:
         """OpenAI-specific settings should have correct defaults."""

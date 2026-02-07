@@ -101,7 +101,7 @@ class TestOpenAIClient:
         """Test client initialization with API key."""
         client = OpenAIClient(api_key="test-key")
         assert client.api_key == "test-key"
-        assert client.model == "gpt-4-turbo-preview"
+        assert client.model == "gpt-4o"
 
     def test_initialization_with_custom_model(self) -> None:
         """Test client initialization with custom model."""
@@ -312,7 +312,7 @@ class TestAnthropicClient:
         """Test client initialization with API key."""
         client = AnthropicClient(api_key="test-key")
         assert client.api_key == "test-key"
-        assert client.model == "claude-3-sonnet-20240229"
+        assert client.model == "claude-sonnet-4-20250514"
 
     def test_initialization_with_custom_model(self) -> None:
         """Test client initialization with custom model."""

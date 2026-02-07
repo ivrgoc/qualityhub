@@ -1,4 +1,6 @@
-"""Pytest configuration and fixtures."""
+"""Pytest configuration and fixtures for AI service tests."""
+
+from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +13,6 @@ def client() -> TestClient:
     """Create a test client for the FastAPI application.
 
     Returns:
-        TestClient instance for making test requests
+        TestClient instance for making test requests.
     """
     return TestClient(app)

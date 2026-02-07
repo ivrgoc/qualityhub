@@ -1,4 +1,8 @@
-"""Application configuration using Pydantic settings."""
+"""Application configuration using Pydantic settings.
+
+Configuration is loaded from environment variables and an optional
+.env file. All settings have sensible defaults for development.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +14,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
+    """Application settings loaded from environment variables.
+
+    Settings are loaded in order of priority:
+    1. Environment variables (highest priority)
+    2. .env file
+    3. Default values (lowest priority)
+    """
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -39,15 +49,15 @@ class Settings(BaseSettings):
     # AI Provider Configuration
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
-    default_ai_provider: Literal["openai", "anthropic"] = "openai"
+    default_ai_provider: Literal["openai", "anthropic"] = "anthropic"
 
     # OpenAI Settings
-    openai_model: str = "gpt-4-turbo-preview"
+    openai_model: str = "gpt-4o"
     openai_max_tokens: int = Field(default=4096, ge=1, le=128000)
     openai_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # Anthropic Settings
-    anthropic_model: str = "claude-3-sonnet-20240229"
+    anthropic_model: str = "claude-sonnet-4-20250514"
     anthropic_max_tokens: int = Field(default=4096, ge=1, le=200000)
     anthropic_temperature: float = Field(default=0.7, ge=0.0, le=1.0)
 
@@ -85,5 +95,12 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Get cached application settings."""
+    """Get cached application settings.
+
+    Uses lru_cache to ensure settings are loaded only once.
+    Call get_settings.cache_clear() to reload settings.
+
+    Returns:
+        Cached Settings instance.
+    """
     return Settings()

@@ -175,7 +175,7 @@ class BaseLLMClient(ABC):
 class OpenAIClient(BaseLLMClient):
     """OpenAI API client implementation."""
 
-    DEFAULT_MODEL = "gpt-4-turbo-preview"
+    DEFAULT_MODEL = "gpt-4o"
 
     def __init__(
         self,
@@ -352,7 +352,7 @@ class OpenAIClient(BaseLLMClient):
 class AnthropicClient(BaseLLMClient):
     """Anthropic API client implementation."""
 
-    DEFAULT_MODEL = "claude-3-sonnet-20240229"
+    DEFAULT_MODEL = "claude-sonnet-4-20250514"
 
     def __init__(
         self,
