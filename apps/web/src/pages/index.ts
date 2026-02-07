@@ -1,5 +1,13 @@
 export { HomePage } from './HomePage';
 export { LoginPage } from './LoginPage';
 export { RegisterPage } from './RegisterPage';
+export { ForgotPasswordPage } from './ForgotPasswordPage';
+export { ResetPasswordPage } from './ResetPasswordPage';
 export { DashboardPage } from './DashboardPage';
 export { NotFoundPage } from './NotFoundPage';
+export { TestCasesPage } from './test-cases';
+export { TestRunsListPage, TestRunDetailPage, TestExecutionPage } from './test-runs';
+export { MilestonesPage } from './milestones';
+export { ReportsPage, ReportViewerPage } from './reports';
+export { RequirementsPage, RequirementDetailPage } from './requirements';
+export { SettingsPage } from './settings';

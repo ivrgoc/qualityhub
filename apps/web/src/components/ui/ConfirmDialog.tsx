@@ -20,9 +20,11 @@ export interface ConfirmDialogProps extends Omit<DialogContentProps, 'children'>
   /** Dialog title */
   title: string;
   /** Dialog description explaining the action */
-  description: string;
+  description: ReactNode;
   /** Text for the confirm button */
   confirmLabel?: string;
+  /** Alias for confirmLabel */
+  confirmText?: string;
   /** Text for the cancel button */
   cancelLabel?: string;
   /** Callback when confirm button is clicked */
@@ -31,6 +33,8 @@ export interface ConfirmDialogProps extends Omit<DialogContentProps, 'children'>
   onCancel?: () => void;
   /** Whether the confirm action is in progress */
   isLoading?: boolean;
+  /** Whether the confirm button is disabled */
+  confirmDisabled?: boolean;
   /** Custom icon to display (defaults to AlertTriangle for destructive variant) */
   icon?: ReactNode;
   /** Visual variant of the dialog */
@@ -47,11 +51,13 @@ export const ConfirmDialog = forwardRef<
       onOpenChange,
       title,
       description,
-      confirmLabel = 'Confirm',
+      confirmLabel,
+      confirmText,
       cancelLabel = 'Cancel',
       onConfirm,
       onCancel,
       isLoading = false,
+      confirmDisabled = false,
       icon,
       variant = 'destructive',
       className,
@@ -59,6 +65,7 @@ export const ConfirmDialog = forwardRef<
     },
     ref
   ) => {
+    const finalConfirmLabel = confirmLabel ?? confirmText ?? 'Confirm';
     const handleCancel = (): void => {
       onCancel?.();
       onOpenChange(false);
@@ -107,9 +114,9 @@ export const ConfirmDialog = forwardRef<
               type="button"
               variant={variant === 'destructive' ? 'destructive' : 'default'}
               onClick={handleConfirm}
-              disabled={isLoading}
+              disabled={isLoading || confirmDisabled}
             >
-              {isLoading ? 'Loading...' : confirmLabel}
+              {isLoading ? 'Loading...' : finalConfirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

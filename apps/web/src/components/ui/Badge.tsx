@@ -10,6 +10,9 @@ const badgeVariants = cva(
         default: 'bg-primary text-primary-foreground',
         secondary: 'bg-secondary text-secondary-foreground',
         outline: 'border border-input bg-background text-foreground',
+        destructive: 'bg-red-500 text-white dark:bg-red-600',
+        success: 'bg-green-500 text-white dark:bg-green-600',
+        warning: 'bg-yellow-500 text-white dark:bg-yellow-600',
         // Test status variants
         passed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
         failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',

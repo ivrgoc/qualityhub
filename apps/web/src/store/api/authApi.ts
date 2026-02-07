@@ -25,6 +25,22 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name: string;
+  organizationName?: string;
+}
+
+/**
+ * Request payload for forgot password.
+ */
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+/**
+ * Request payload for reset password.
+ */
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
 }
 
 /**
@@ -122,6 +138,28 @@ export const authApi = baseApi.injectEndpoints({
         }
       },
     }),
+
+    /**
+     * Request a password reset email.
+     */
+    forgotPassword: builder.mutation<void, ForgotPasswordRequest>({
+      query: (data) => ({
+        url: '/auth/forgot-password',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    /**
+     * Reset password using a token from email.
+     */
+    resetPassword: builder.mutation<void, ResetPasswordRequest>({
+      query: (data) => ({
+        url: '/auth/reset-password',
+        method: 'POST',
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -131,4 +169,6 @@ export const {
   useLogoutMutation,
   useGetMeQuery,
   useLazyGetMeQuery,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
 } = authApi;

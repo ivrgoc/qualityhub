@@ -1,5 +1,5 @@
-import { type FC } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { type FC, useMemo } from 'react';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -10,6 +10,8 @@ import {
   ChevronDown,
   Plus,
   LogOut,
+  Flag,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -34,12 +36,9 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const mainNavItems: NavItem[] = [
+const globalNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Projects', href: '/projects', icon: FolderKanban },
-  { label: 'Test Cases', href: '/test-cases', icon: TestTube2 },
-  { label: 'Test Runs', href: '/test-runs', icon: PlayCircle },
-  { label: 'Reports', href: '/reports', icon: FileBarChart },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -57,10 +56,33 @@ export interface SidebarProps {
 export const Sidebar: FC<SidebarProps> = ({ className }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAppSelector(selectUser);
 
   const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery({ pageSize: 10 });
   const projects = projectsData?.items ?? [];
+
+  // Extract projectId from URL path (e.g., /projects/abc-123/test-cases)
+  const projectIdFromUrl = useMemo(() => {
+    const match = location.pathname.match(/^\/projects\/([^/]+)/);
+    return match ? match[1] : null;
+  }, [location.pathname]);
+
+  // Get current project (from URL or first project)
+  const currentProjectId = projectIdFromUrl ?? projects[0]?.id;
+  const currentProject = projects.find((p) => p.id === currentProjectId) ?? projects[0];
+
+  // Project-scoped navigation items (only shown when a project is available)
+  const projectNavItems: NavItem[] = useMemo(() => {
+    if (!currentProjectId) return [];
+    return [
+      { label: 'Test Cases', href: `/projects/${currentProjectId}/test-cases`, icon: TestTube2 },
+      { label: 'Test Runs', href: `/projects/${currentProjectId}/runs`, icon: PlayCircle },
+      { label: 'Milestones', href: `/projects/${currentProjectId}/milestones`, icon: Flag },
+      { label: 'Requirements', href: `/projects/${currentProjectId}/requirements`, icon: FileText },
+      { label: 'Reports', href: `/projects/${currentProjectId}/reports`, icon: FileBarChart },
+    ];
+  }, [currentProjectId]);
 
   const handleLogout = (): void => {
     dispatch(clearCredentials());
@@ -94,7 +116,7 @@ export const Sidebar: FC<SidebarProps> = ({ className }) => {
             >
               <div className="flex items-center gap-2 min-w-0">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
-                  {projects[0]?.name.charAt(0).toUpperCase() ?? 'P'}
+                  {currentProject?.name.charAt(0).toUpperCase() ?? 'P'}
                 </div>
                 <div className="flex flex-col min-w-0">
                   {projectsLoading ? (
@@ -102,7 +124,7 @@ export const Sidebar: FC<SidebarProps> = ({ className }) => {
                   ) : (
                     <>
                       <span className="truncate text-sm font-medium text-sidebar-foreground">
-                        {projects[0]?.name ?? 'Select Project'}
+                        {currentProject?.name ?? 'Select Project'}
                       </span>
                       <span className="text-xs text-sidebar-foreground/60">
                         {projects.length} project{projects.length !== 1 ? 's' : ''}
@@ -154,7 +176,8 @@ export const Sidebar: FC<SidebarProps> = ({ className }) => {
 
       {/* Main Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {mainNavItems.map((item) => (
+        {/* Global navigation items */}
+        {globalNavItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}
@@ -171,6 +194,34 @@ export const Sidebar: FC<SidebarProps> = ({ className }) => {
             {item.label}
           </NavLink>
         ))}
+
+        {/* Project-scoped navigation items */}
+        {projectNavItems.length > 0 && (
+          <>
+            <div className="my-3 px-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+                Project
+              </span>
+            </div>
+            {projectNavItems.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  )
+                }
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Bottom Section */}
