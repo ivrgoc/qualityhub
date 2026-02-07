@@ -16,6 +16,7 @@ import {
   ApiUnauthorizedResponse,
   ApiConflictResponse,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -30,6 +31,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { ttl: 60000, limit: 5 } }) // 5 requests per 60 seconds
   @ApiOperation({ summary: 'Register a new user' })
   @ApiCreatedResponse({ description: 'User registered successfully' })
   @ApiConflictResponse({ description: 'Email already registered' })
@@ -38,6 +40,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { ttl: 60000, limit: 5 } }) // 5 requests per 60 seconds
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with credentials' })
   @ApiOkResponse({ description: 'Login successful' })

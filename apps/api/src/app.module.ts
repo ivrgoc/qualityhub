@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import {
   databaseConfig,
   jwtConfig,
@@ -23,6 +25,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { AiModule } from './modules/ai/ai.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -31,6 +34,12 @@ import { AiModule } from './modules/ai/ai.module';
       envFilePath: ['.env.local', '.env'],
       load: [databaseConfig, jwtConfig, storageConfig],
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 60,
+      },
+    ]),
     TypeOrmModule.forRootAsync(typeOrmAsyncConfig),
     StorageModule.forRootAsync(),
     HealthModule,
@@ -48,6 +57,11 @@ import { AiModule } from './modules/ai/ai.module';
     DashboardModule,
     AttachmentsModule,
     AiModule,
+    NotificationsModule,
   ],
+  providers:
+    process.env.NODE_ENV === 'test'
+      ? []
+      : [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
