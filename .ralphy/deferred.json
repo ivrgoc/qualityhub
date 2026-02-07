@@ -1,9 +1,9 @@
 {
   "tasks": {
-    "markdown:PRD.md:191": {
+    "markdown:PRD.md:305": {
       "count": 1,
-      "last": "2026-01-25T23:48:32.841Z",
-      "title": "Create `ReportsModule` aggregating data from other modules"
+      "last": "2026-01-26T21:22:54.982Z",
+      "title": "Create AuthGuard redirecting unauthenticated users to login"
     }
   }
 }

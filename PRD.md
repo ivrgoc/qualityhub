@@ -188,24 +188,24 @@
 
 ### 2.15 Reports Module
 
-- [ ] Create `ReportsModule` aggregating data from other modules
-- [ ] Create `ReportsService` with getSummary, getCoverage, getDefects, getTrends methods
-- [ ] Create `ReportsController` with /summary, /coverage, /defects, /trends endpoints
-- [ ] Create PDF export using pdfkit
-- [ ] Create Excel export using exceljs
+- [x] Create `ReportsModule` aggregating data from other modules
+- [x] Create `ReportsService` with getSummary, getCoverage, getDefects, getTrends methods
+- [x] Create `ReportsController` with /summary, /coverage, /defects, /trends endpoints
+- [x] Create PDF export using pdfkit
+- [x] Create Excel export using exceljs
 
 ### 2.16 Attachments Module
 
-- [ ] Create `AttachmentsModule` with Attachment entity and storage service
-- [ ] Create `Attachment` entity with polymorphic entity_type/entity_id, filename, path
-- [ ] Create storage interface with local and S3 implementations
-- [ ] Create `AttachmentsController` with POST /upload, GET /:id/download, DELETE /:id
+- [x] Create `AttachmentsModule` with Attachment entity and storage service
+- [x] Create `Attachment` entity with polymorphic entity_type/entity_id, filename, path
+- [x] Create storage interface with local and S3 implementations
+- [x] Create `AttachmentsController` with POST /upload, GET /:id/download, DELETE /:id
 
 ### 2.17 Dashboard Module
 
-- [ ] Create `DashboardModule` aggregating widget data
-- [ ] Create `DashboardService` with getStats, getActivity, getTodo methods
-- [ ] Create `DashboardController` with GET / returning all widget data
+- [x] Create `DashboardModule` aggregating widget data
+- [x] Create `DashboardService` with getStats, getActivity, getTodo methods
+- [x] Create `DashboardController` with GET / returning all widget data
 
 ---
 
@@ -213,26 +213,26 @@
 
 ### 3.1 FastAPI Setup
 
-- [ ] Create `apps/ai-service/requirements.txt` with fastapi, uvicorn, pydantic, openai, langchain
-- [ ] Create `apps/ai-service/app/main.py` with FastAPI app, CORS, health endpoint
-- [ ] Create `apps/ai-service/app/core/config.py` with Settings using pydantic-settings
-- [ ] Create `apps/ai-service/app/core/security.py` with API key validation dependency
+- [x] Create `apps/ai-service/requirements.txt` with fastapi, uvicorn, pydantic, openai, langchain
+- [x] Create `apps/ai-service/app/main.py` with FastAPI app, CORS, health endpoint
+- [x] Create `apps/ai-service/app/core/config.py` with Settings using pydantic-settings
+- [x] Create `apps/ai-service/app/core/security.py` with API key validation dependency
 
 ### 3.2 Test Generation
 
-- [ ] Create `apps/ai-service/app/schemas/generation.py` with request/response Pydantic models
-- [ ] Create `apps/ai-service/app/prompts/test_generation.py` with system and user prompt templates
-- [ ] Create `apps/ai-service/app/prompts/bdd_generation.py` with Gherkin prompt templates
-- [ ] Create `apps/ai-service/app/services/llm_client.py` abstracting OpenAI/Anthropic calls
-- [ ] Create `apps/ai-service/app/services/test_generator.py` with generate_tests method
-- [ ] Create `apps/ai-service/app/services/bdd_generator.py` with generate_scenarios method
-- [ ] Create `apps/ai-service/app/api/routes/generate.py` with POST /generate/tests and /generate/bdd
+- [x] Create `apps/ai-service/app/schemas/generation.py` with request/response Pydantic models
+- [x] Create `apps/ai-service/app/prompts/test_generation.py` with system and user prompt templates
+- [x] Create `apps/ai-service/app/prompts/bdd_generation.py` with Gherkin prompt templates
+- [x] Create `apps/ai-service/app/services/llm_client.py` abstracting OpenAI/Anthropic calls
+- [x] Create `apps/ai-service/app/services/test_generator.py` with generate_tests method
+- [x] Create `apps/ai-service/app/services/bdd_generator.py` with generate_scenarios method
+- [x] Create `apps/ai-service/app/api/routes/generate.py` with POST /generate/tests and /generate/bdd
 
 ### 3.3 NestJS AI Integration
 
-- [ ] Create `apps/api/src/modules/ai/ai.module.ts` with HttpModule
-- [ ] Create `apps/api/src/modules/ai/ai.service.ts` calling FastAPI endpoints
-- [ ] Create `apps/api/src/modules/ai/ai.controller.ts` with POST /ai/generate-tests, /ai/generate-bdd
+- [x] Create `apps/api/src/modules/ai/ai.module.ts` with HttpModule
+- [x] Create `apps/api/src/modules/ai/ai.service.ts` calling FastAPI endpoints
+- [x] Create `apps/api/src/modules/ai/ai.controller.ts` with POST /ai/generate-tests, /ai/generate-bdd
 
 ---
 
@@ -240,160 +240,160 @@
 
 ### 4.1 React Project Setup
 
-- [ ] Initialize Vite React TypeScript project in `apps/web`
-- [ ] Install dependencies: react-router-dom, @reduxjs/toolkit, react-redux, tailwindcss, @radix-ui/\*, lucide-react, react-hook-form, zod, recharts, date-fns
-- [ ] Create `apps/web/tailwind.config.js` with custom theme colors and Radix UI integration
-- [ ] Create `apps/web/vite.config.ts` with @ path alias and API proxy
-- [ ] Create `apps/web/src/styles/globals.css` with Tailwind directives and CSS variables
+- [x] Initialize Vite React TypeScript project in `apps/web`
+- [x] Install dependencies: react-router-dom, @reduxjs/toolkit, react-redux, tailwindcss, @radix-ui/\*, lucide-react, react-hook-form, zod, recharts, date-fns
+- [x] Create `apps/web/tailwind.config.js` with custom theme colors and Radix UI integration
+- [x] Create `apps/web/vite.config.ts` with @ path alias and API proxy
+- [x] Create `apps/web/src/styles/globals.css` with Tailwind directives and CSS variables
 
 ### 4.2 Redux Store
 
-- [ ] Create `apps/web/src/store/index.ts` with configureStore and middleware
-- [ ] Create `apps/web/src/store/hooks.ts` with typed useAppDispatch and useAppSelector
-- [ ] Create `apps/web/src/store/api/baseApi.ts` with createApi, auth headers, tag types
-- [ ] Create `apps/web/src/store/api/authApi.ts` with login, register, logout, getMe endpoints
-- [ ] Create `apps/web/src/store/api/projectsApi.ts` with projects CRUD endpoints
-- [ ] Create `apps/web/src/store/api/testCasesApi.ts` with test cases CRUD and bulk endpoints
-- [ ] Create `apps/web/src/store/api/testRunsApi.ts` with runs CRUD and results endpoints
-- [ ] Create `apps/web/src/store/api/reportsApi.ts` with report generation endpoints
-- [ ] Create `apps/web/src/store/slices/authSlice.ts` with user state and credentials actions
-- [ ] Create `apps/web/src/store/slices/uiSlice.ts` with sidebar, modal, theme state
+- [x] Create `apps/web/src/store/index.ts` with configureStore and middleware
+- [x] Create `apps/web/src/store/hooks.ts` with typed useAppDispatch and useAppSelector
+- [x] Create `apps/web/src/store/api/baseApi.ts` with createApi, auth headers, tag types
+- [x] Create `apps/web/src/store/api/authApi.ts` with login, register, logout, getMe endpoints
+- [x] Create `apps/web/src/store/api/projectsApi.ts` with projects CRUD endpoints
+- [x] Create `apps/web/src/store/api/testCasesApi.ts` with test cases CRUD and bulk endpoints
+- [x] Create `apps/web/src/store/api/testRunsApi.ts` with runs CRUD and results endpoints
+- [x] Create `apps/web/src/store/api/reportsApi.ts` with report generation endpoints
+- [x] Create `apps/web/src/store/slices/authSlice.ts` with user state and credentials actions
+- [x] Create `apps/web/src/store/slices/uiSlice.ts` with sidebar, modal, theme state
 
 ### 4.3 Utility Functions
 
-- [ ] Create `apps/web/src/utils/cn.ts` with clsx and tailwind-merge className utility
-- [ ] Create `apps/web/src/utils/api.ts` with fetch wrapper handling auth and errors
-- [ ] Create `apps/web/src/utils/storage.ts` with token get/set/remove helpers
-- [ ] Create `apps/web/src/utils/date.ts` with formatDate, formatRelativeTime using date-fns
-- [ ] Create `apps/web/src/utils/status.ts` with getStatusColor, getStatusIcon helpers
+- [x] Create `apps/web/src/utils/cn.ts` with clsx and tailwind-merge className utility
+- [x] Create `apps/web/src/utils/api.ts` with fetch wrapper handling auth and errors
+- [x] Create `apps/web/src/utils/storage.ts` with token get/set/remove helpers
+- [x] Create `apps/web/src/utils/date.ts` with formatDate, formatRelativeTime using date-fns
+- [x] Create `apps/web/src/utils/status.ts` with getStatusColor, getStatusIcon helpers
 
 ### 4.4 Base UI Components
 
-- [ ] Create Button component with variants: default, destructive, outline, secondary, ghost, link
-- [ ] Create Input component with error state and icon support
-- [ ] Create Textarea component with auto-resize option
-- [ ] Create Select component using Radix Select
-- [ ] Create Checkbox component using Radix Checkbox
-- [ ] Create Switch component using Radix Switch
-- [ ] Create Dialog component using Radix Dialog with header, content, footer
-- [ ] Create DropdownMenu component using Radix DropdownMenu
-- [ ] Create Popover component using Radix Popover
-- [ ] Create Tooltip component using Radix Tooltip
-- [ ] Create Tabs component using Radix Tabs
-- [ ] Create Avatar component with fallback initials
-- [ ] Create Badge component with status variants (passed, failed, blocked, skipped)
-- [ ] Create Card component with header, content, footer sections
-- [ ] Create Alert component with info, success, warning, error variants
-- [ ] Create Toast component using Radix Toast with useToast hook
-- [ ] Create Skeleton component for loading states
-- [ ] Create Spinner component with animated loader icon
-- [ ] Create Progress component using Radix Progress
-- [ ] Create Table components (Table, TableHeader, TableBody, TableRow, TableCell)
-- [ ] Create Pagination component with page numbers and navigation
-- [ ] Create EmptyState component with icon, title, description, action
-- [ ] Create ConfirmDialog component for destructive actions
+- [x] Create Button component with variants: default, destructive, outline, secondary, ghost, link
+- [x] Create Input component with error state and icon support
+- [x] Create Textarea component with auto-resize option
+- [x] Create Select component using Radix Select
+- [x] Create Checkbox component using Radix Checkbox
+- [x] Create Switch component using Radix Switch
+- [x] Create Dialog component using Radix Dialog with header, content, footer
+- [x] Create DropdownMenu component using Radix DropdownMenu
+- [x] Create Popover component using Radix Popover
+- [x] Create Tooltip component using Radix Tooltip
+- [x] Create Tabs component using Radix Tabs
+- [x] Create Avatar component with fallback initials
+- [x] Create Badge component with status variants (passed, failed, blocked, skipped)
+- [x] Create Card component with header, content, footer sections
+- [x] Create Alert component with info, success, warning, error variants
+- [x] Create Toast component using Radix Toast with useToast hook
+- [x] Create Skeleton component for loading states
+- [x] Create Spinner component with animated loader icon
+- [x] Create Progress component using Radix Progress
+- [x] Create Table components (Table, TableHeader, TableBody, TableRow, TableCell)
+- [x] Create Pagination component with page numbers and navigation
+- [x] Create EmptyState component with icon, title, description, action
+- [x] Create ConfirmDialog component for destructive actions
 
 ### 4.5 Layout Components
 
-- [ ] Create `apps/web/src/router.tsx` with route configuration and lazy loading
-- [ ] Create RootLayout with ToastProvider and global error boundary
-- [ ] Create AuthLayout with centered card design for login/register
-- [ ] Create DashboardLayout with Sidebar, Header, and content area
-- [ ] Create Sidebar with navigation items, project switcher, user avatar
-- [ ] Create Header with breadcrumbs, search, notifications, user menu
-- [ ] Create Breadcrumbs generating navigation from current route
-- [ ] Create AuthGuard redirecting unauthenticated users to login
-- [ ] Create GuestGuard redirecting authenticated users to dashboard
+- [x] Create `apps/web/src/router.tsx` with route configuration and lazy loading
+- [x] Create RootLayout with ToastProvider and global error boundary
+- [x] Create AuthLayout with centered card design for login/register
+- [x] Create DashboardLayout with Sidebar, Header, and content area
+- [x] Create Sidebar with navigation items, project switcher, user avatar
+- [x] Create Header with breadcrumbs, search, notifications, user menu
+- [x] Create Breadcrumbs generating navigation from current route
+- [x] Create AuthGuard redirecting unauthenticated users to login
+- [x] Create GuestGuard redirecting authenticated users to dashboard
 
 ### 4.6 Auth Pages
 
-- [ ] Create LoginPage with email/password form, remember me, forgot password link
-- [ ] Create RegisterPage with name, email, organization, password form
-- [ ] Create ForgotPasswordPage with email input and success state
-- [ ] Create ResetPasswordPage with new password form
-- [ ] Create useAuth hook with login, logout, register, user state
+- [x] Create LoginPage with email/password form, remember me, forgot password link
+- [x] Create RegisterPage with name, email, organization, password form
+- [x] Create ForgotPasswordPage with email input and success state
+- [x] Create ResetPasswordPage with new password form
+- [x] Create useAuth hook with login, logout, register, user state
 
 ### 4.7 Dashboard Page
 
-- [ ] Create DashboardPage with stats grid, activity feed, todo list, recent runs
-- [ ] Create StatsCard with icon, label, value, trend indicator
-- [ ] Create ActivityFeed with activity items showing user, action, timestamp
-- [ ] Create TodoList with assigned tests and checkbox to mark complete
-- [ ] Create RecentRunsTable showing name, progress, pass rate, date
-- [ ] Create useDashboard hook fetching dashboard data
+- [x] Create DashboardPage with stats grid, activity feed, todo list, recent runs
+- [x] Create StatsCard with icon, label, value, trend indicator
+- [x] Create ActivityFeed with activity items showing user, action, timestamp
+- [x] Create TodoList with assigned tests and checkbox to mark complete
+- [x] Create RecentRunsTable showing name, progress, pass rate, date
+- [x] Create useDashboard hook fetching dashboard data
 
 ### 4.8 Projects Pages
 
-- [ ] Create ProjectsListPage with grid view of project cards and create button
-- [ ] Create ProjectDetailPage with tabs navigation and nested routes
-- [ ] Create ProjectOverviewPage with stats and quick actions
-- [ ] Create ProjectSettingsPage with form and danger zone
-- [ ] Create ProjectCard with name, stats, member count
-- [ ] Create CreateProjectDialog with name and description form
-- [ ] Create ProjectMembers component with member list and add/remove
+- [x] Create ProjectsListPage with grid view of project cards and create button
+- [x] Create ProjectDetailPage with tabs navigation and nested routes
+- [x] Create ProjectOverviewPage with stats and quick actions
+- [x] Create ProjectSettingsPage with form and danger zone
+- [x] Create ProjectCard with name, stats, member count
+- [x] Create CreateProjectDialog with name and description form
+- [x] Create ProjectMembers component with member list and add/remove
 
 ### 4.9 Test Cases Pages
 
-- [ ] Create TestCasesPage with three-column layout: tree, list, detail
-- [ ] Create SectionTree with recursive rendering, expand/collapse, drag-drop
-- [ ] Create TestCaseList with virtualized scrolling, search, filters, bulk select
-- [ ] Create TestCaseRow with checkbox, title, priority badge, template icon
-- [ ] Create TestCaseDetail showing all fields with edit button
-- [ ] Create TestCaseForm with react-hook-form for all fields
-- [ ] Create StepsEditor with dynamic step list and drag-drop reorder
-- [ ] Create BddEditor with syntax-highlighted Gherkin textarea
-- [ ] Create BulkActionsBar with move, delete buttons when items selected
-- [ ] Create AiGenerateDialog with requirements input and preview
-- [ ] Create useTestCases hook with CRUD operations and selection state
+- [x] Create TestCasesPage with three-column layout: tree, list, detail
+- [x] Create SectionTree with recursive rendering, expand/collapse, drag-drop
+- [x] Create TestCaseList with virtualized scrolling, search, filters, bulk select
+- [x] Create TestCaseRow with checkbox, title, priority badge, template icon
+- [x] Create TestCaseDetail showing all fields with edit button
+- [x] Create TestCaseForm with react-hook-form for all fields
+- [x] Create StepsEditor with dynamic step list and drag-drop reorder
+- [x] Create BddEditor with syntax-highlighted Gherkin textarea
+- [x] Create BulkActionsBar with move, delete buttons when items selected
+- [x] Create AiGenerateDialog with requirements input and preview
+- [x] Create useTestCases hook with CRUD operations and selection state
 
 ### 4.10 Test Runs Pages
 
-- [ ] Create TestRunsListPage with filters and run cards
-- [ ] Create TestRunDetailPage with progress stats and results table
-- [ ] Create TestExecutionPage with three-pane layout for execution
-- [ ] Create TestRunCard with name, progress bar, pass rate, assignee
-- [ ] Create CreateRunDialog with name, suite selection, assignee
-- [ ] Create RunProgress with colored segments and legend
-- [ ] Create ExecutionTestList with test list and status filter
-- [ ] Create ExecutionTestDetail showing test case content
-- [ ] Create ExecutionResultForm with status buttons, comment, elapsed time
-- [ ] Create StatusSelector with keyboard shortcut hints (P, F, B, S)
-- [ ] Create useTestExecution hook managing state and keyboard navigation
+- [x] Create TestRunsListPage with filters and run cards
+- [x] Create TestRunDetailPage with progress stats and results table
+- [x] Create TestExecutionPage with three-pane layout for execution
+- [x] Create TestRunCard with name, progress bar, pass rate, assignee
+- [x] Create CreateRunDialog with name, suite selection, assignee
+- [x] Create RunProgress with colored segments and legend
+- [x] Create ExecutionTestList with test list and status filter
+- [x] Create ExecutionTestDetail showing test case content
+- [x] Create ExecutionResultForm with status buttons, comment, elapsed time
+- [x] Create StatusSelector with keyboard shortcut hints (P, F, B, S)
+- [x] Create useTestExecution hook managing state and keyboard navigation
 
 ### 4.11 Milestones & Plans Pages
 
-- [ ] Create MilestonesPage with timeline or list view
-- [ ] Create MilestoneDetailPage with progress and linked plans
-- [ ] Create TestPlansPage with plans list and create button
-- [ ] Create TestPlanDetailPage with entries and reorder
-- [ ] Create MilestoneCard with name, due date, progress
-- [ ] Create CreateMilestoneDialog with name, description, due date
+- [x] Create MilestonesPage with timeline or list view
+- [x] Create MilestoneDetailPage with progress and linked plans
+- [x] Create TestPlansPage with plans list and create button
+- [x] Create TestPlanDetailPage with entries and reorder
+- [x] Create MilestoneCard with name, due date, progress
+- [x] Create CreateMilestoneDialog with name, description, due date
 
 ### 4.12 Reports Pages
 
-- [ ] Create ReportsPage with report type cards and date picker
-- [ ] Create ReportViewerPage rendering report with export buttons
-- [ ] Create SummaryReport with stats, pie chart, trend chart
-- [ ] Create CoverageReport with gauge and requirements list
-- [ ] Create PassFailChart using Recharts PieChart
-- [ ] Create TrendChart using Recharts LineChart
-- [ ] Create ExportDialog with format selection
+- [x] Create ReportsPage with report type cards and date picker
+- [x] Create ReportViewerPage rendering report with export buttons
+- [x] Create SummaryReport with stats, pie chart, trend chart
+- [x] Create CoverageReport with gauge and requirements list
+- [x] Create PassFailChart using Recharts PieChart
+- [x] Create TrendChart using Recharts LineChart
+- [x] Create ExportDialog with format selection
 
 ### 4.13 Requirements Pages
 
-- [ ] Create RequirementsPage with requirements table and filters
-- [ ] Create RequirementDetailPage with linked test cases
-- [ ] Create RequirementList with coverage status badge
-- [ ] Create LinkTestsDialog with searchable test case selection
-- [ ] Create TraceabilityMatrix with requirements vs tests grid
+- [x] Create RequirementsPage with requirements table and filters
+- [x] Create RequirementDetailPage with linked test cases
+- [x] Create RequirementList with coverage status badge
+- [x] Create LinkTestsDialog with searchable test case selection
+- [x] Create TraceabilityMatrix with requirements vs tests grid
 
 ### 4.14 Settings Pages
 
-- [ ] Create SettingsPage with tabs: Profile, Organization, Integrations
-- [ ] Create ProfileSettings with name, email, avatar, password change
-- [ ] Create OrganizationSettings with org name and member management
-- [ ] Create IntegrationsSettings with Jira connection form
-- [ ] Create NotificationSettings with email preference toggles
+- [x] Create SettingsPage with tabs: Profile, Organization, Integrations
+- [x] Create ProfileSettings with name, email, avatar, password change
+- [x] Create OrganizationSettings with org name and member management
+- [x] Create IntegrationsSettings with Jira connection form
+- [x] Create NotificationSettings with email preference toggles
 
 ---
 
