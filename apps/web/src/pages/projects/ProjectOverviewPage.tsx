@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import { type FC, useMemo } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import {
   FileText,
@@ -19,6 +19,10 @@ import {
   Skeleton,
 } from '@/components/ui';
 import { StatsCard } from '@/components/features/dashboard';
+import {
+  useGetProjectStatsQuery,
+  useGetProjectRecentRunsQuery,
+} from '@/store/api/dashboardApi';
 import type { Project } from '@/types';
 
 interface ProjectContextType {
@@ -50,17 +54,26 @@ export const ProjectOverviewPage: FC = () => {
   const context = useOutletContext<ProjectContextType>();
   const project = context?.project;
 
-  if (!project) {
+  const {
+    data: stats,
+    isLoading: isLoadingStats,
+  } = useGetProjectStatsQuery(projectId!, { skip: !projectId });
+
+  const {
+    data: recentRuns,
+    isLoading: isLoadingRuns,
+  } = useGetProjectRecentRunsQuery(projectId!, { skip: !projectId });
+
+  const isLoading = isLoadingStats || isLoadingRuns;
+
+  const activeRuns = useMemo(
+    () => stats?.testRuns.inProgress ?? 0,
+    [stats]
+  );
+
+  if (!project || isLoading) {
     return <OverviewSkeleton />;
   }
-
-  // Mock stats for now - these would come from an API endpoint
-  const stats = {
-    testCases: 156,
-    testRuns: 24,
-    passRate: 87,
-    activeRuns: 3,
-  };
 
   return (
     <div className="space-y-6">
@@ -69,22 +82,22 @@ export const ProjectOverviewPage: FC = () => {
         <StatsCard
           icon={<FileText />}
           label="Test Cases"
-          value={stats.testCases}
+          value={stats?.testCases.total ?? 0}
           iconBgColor="bg-purple-100 dark:bg-purple-900/30"
           iconColor="text-purple-600 dark:text-purple-400"
         />
         <StatsCard
           icon={<PlayCircle />}
           label="Test Runs"
-          value={stats.testRuns}
+          value={stats?.testRuns.total ?? 0}
           iconBgColor="bg-orange-100 dark:bg-orange-900/30"
           iconColor="text-orange-600 dark:text-orange-400"
         />
         <StatsCard
           icon={<TrendingUp />}
           label="Pass Rate"
-          value={`${stats.passRate}%`}
-          trend={5}
+          value={`${Math.round(stats?.passRate.current ?? 0)}%`}
+          trend={stats?.passRate.trend}
           trendLabel="vs last week"
           iconBgColor="bg-green-100 dark:bg-green-900/30"
           iconColor="text-green-600 dark:text-green-400"
@@ -92,7 +105,7 @@ export const ProjectOverviewPage: FC = () => {
         <StatsCard
           icon={<Clock />}
           label="Active Runs"
-          value={stats.activeRuns}
+          value={activeRuns}
           iconBgColor="bg-blue-100 dark:bg-blue-900/30"
           iconColor="text-blue-600 dark:text-blue-400"
         />
@@ -165,41 +178,42 @@ export const ProjectOverviewPage: FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {/* Mock recent runs - these would come from API */}
-              {[
-                { id: '1', name: 'Regression Suite v2.1', status: 'completed', passRate: 92 },
-                { id: '2', name: 'Login Flow Tests', status: 'in_progress', passRate: 78 },
-                { id: '3', name: 'API Integration', status: 'completed', passRate: 100 },
-              ].map((run) => (
-                <Link
-                  key={run.id}
-                  to={`/projects/${projectId}/test-runs/${run.id}`}
-                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {run.name}
-                    </p>
-                    <Badge
-                      variant={run.status === 'completed' ? 'passed' : 'blocked'}
-                      className="mt-1"
-                    >
-                      {run.status === 'completed' ? 'Completed' : 'In Progress'}
-                    </Badge>
-                  </div>
-                  <Badge
-                    variant={
-                      run.passRate >= 80
-                        ? 'success'
-                        : run.passRate >= 50
-                          ? 'warning'
-                          : 'destructive'
-                    }
+              {(!recentRuns || recentRuns.length === 0) ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  No test runs yet. Start a test run to see results here.
+                </div>
+              ) : (
+                recentRuns.slice(0, 3).map((run) => (
+                  <Link
+                    key={run.id}
+                    to={`/projects/${projectId}/test-runs/${run.id}`}
+                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                   >
-                    {run.passRate}%
-                  </Badge>
-                </Link>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {run.name}
+                      </p>
+                      <Badge
+                        variant={run.status === 'completed' ? 'passed' : 'blocked'}
+                        className="mt-1"
+                      >
+                        {run.status === 'completed' ? 'Completed' : 'In Progress'}
+                      </Badge>
+                    </div>
+                    <Badge
+                      variant={
+                        run.passRate >= 80
+                          ? 'success'
+                          : run.passRate >= 50
+                            ? 'warning'
+                            : 'destructive'
+                      }
+                    >
+                      {Math.round(run.passRate)}%
+                    </Badge>
+                  </Link>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

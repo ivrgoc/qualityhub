@@ -92,6 +92,53 @@ export interface DashboardData {
 }
 
 /**
+ * Project-specific stats from the dashboard/stats endpoint.
+ */
+export interface ProjectStats {
+  testCases: {
+    total: number;
+    automated: number;
+    manual: number;
+  };
+  testRuns: {
+    total: number;
+    inProgress: number;
+    completed: number;
+  };
+  passRate: {
+    current: number;
+    trend: number;
+  };
+  coverage: {
+    overall: number;
+  };
+}
+
+/**
+ * Project-specific recent run from dashboard.
+ */
+export interface ProjectRecentRun {
+  id: string;
+  name: string;
+  status: 'in_progress' | 'completed';
+  passRate: number;
+  startedAt: string;
+  completedAt?: string;
+}
+
+/**
+ * Internal type for run payloads from the API.
+ */
+interface RunPayload {
+  id: string;
+  name: string;
+  completedAt?: string;
+  startedAt?: string;
+  createdAt: string;
+  stats?: { passed: number; total: number; untested: number };
+}
+
+/**
  * Dashboard API slice.
  */
 export const dashboardApi = baseApi.injectEndpoints({
@@ -102,6 +149,45 @@ export const dashboardApi = baseApi.injectEndpoints({
     getDashboard: builder.query<DashboardData, void>({
       query: () => '/dashboard',
       providesTags: ['Project', 'TestCase', 'TestRun', 'TestResult'],
+    }),
+
+    /**
+     * Get project-specific aggregated statistics.
+     */
+    getProjectStats: builder.query<ProjectStats, string>({
+      query: (projectId) => `/projects/${projectId}/dashboard/stats`,
+      providesTags: (_result, _error, projectId) => [
+        { type: 'Project', id: projectId },
+        'TestCase',
+        'TestRun',
+      ],
+    }),
+
+    /**
+     * Get recent test runs for a project (via dashboard).
+     */
+    getProjectRecentRuns: builder.query<ProjectRecentRun[], string>({
+      query: (projectId) => ({
+        url: `/projects/${projectId}/runs`,
+        params: { pageSize: 5, sort: 'createdAt', order: 'desc' },
+      }),
+      transformResponse: (response: unknown) => {
+        const resp = response as { items?: RunPayload[] } | RunPayload[];
+        const items: RunPayload[] = Array.isArray(resp) ? resp : resp.items ?? [];
+        return items.map((run): ProjectRecentRun => {
+          const stats = run.stats ?? { passed: 0, total: 0, untested: 0 };
+          const completed = stats.total - stats.untested;
+          return {
+            id: run.id,
+            name: run.name,
+            status: run.completedAt ? 'completed' : 'in_progress',
+            passRate: completed > 0 ? (stats.passed / completed) * 100 : 0,
+            startedAt: run.startedAt ?? run.createdAt,
+            completedAt: run.completedAt,
+          };
+        });
+      },
+      providesTags: ['TestRun'],
     }),
 
     /**
@@ -118,4 +204,9 @@ export const dashboardApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetDashboardQuery, useCompleteTodoMutation } = dashboardApi;
+export const {
+  useGetDashboardQuery,
+  useGetProjectStatsQuery,
+  useGetProjectRecentRunsQuery,
+  useCompleteTodoMutation,
+} = dashboardApi;

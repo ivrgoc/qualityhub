@@ -7,3 +7,5 @@ export * from './testRunsApi';
 export * from './milestonesApi';
 export * from './reportsApi';
 export * from './requirementsApi';
+export * from './dashboardApi';
+export * from './settingsApi';
